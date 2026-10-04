@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototipo 5S + RFID – Almacén de producto terminado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--bg:#f3f1ec;--card:#fffdf9;--fg:#24211c;--mut:#6c665c;--line:#dcd6ca;--nav:#5a3d22;--navfg:#fff8ef;--acc:#b8662a;--accfg:#ffffff;
+--ok:#2f7d3a;--okbg:#e2f0dc;--warn:#9a6400;--warnbg:#fbefcf;--err:#b3261e;--errbg:#fbe1de;--gry:#e6e2da;--aisle:#ece8df;--floor:#fffdf9;--wall:#3a352d;--inp:#ffffff;
+--zMAR:#9cc98a;--zJUE:#8db8e0;--zAM:#c9a27a;--zMP:#ecd27a;--zNC:#f0ad74;--zTR:#e69494;--ztx:#1d1a16}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1916;--card:#25221e;--fg:#ece6dc;--mut:#a69e91;--line:#3d3830;--nav:#3a2816;--navfg:#fff3e3;--acc:#e08a45;--accfg:#1b1916;
+--ok:#7cc884;--okbg:#21361f;--warn:#e8b64a;--warnbg:#3b3018;--err:#f08a80;--errbg:#3f1f1c;--gry:#3a362f;--aisle:#2c2925;--floor:#211f1b;--wall:#cfc7b8;--inp:#1f1d1a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1916;--card:#25221e;--fg:#ece6dc;--mut:#a69e91;--line:#3d3830;--nav:#3a2816;--navfg:#fff3e3;--acc:#e08a45;--accfg:#1b1916;
+--ok:#7cc884;--okbg:#21361f;--warn:#e8b64a;--warnbg:#3b3018;--err:#f08a80;--errbg:#3f1f1c;--gry:#3a362f;--aisle:#2c2925;--floor:#211f1b;--wall:#cfc7b8;--inp:#1f1d1a;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:"IBM Plex Sans",system-ui,Arial,sans-serif;font-size:14px;margin:0}
+.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+header{background:var(--nav);color:var(--navfg);padding:14px 16px 0}
+.hw{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+header h1{font-size:17px;margin:0;font-weight:600;text-wrap:balance;flex:1 1 320px}
+header h1 small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:2px}
+.tabs{max-width:1280px;margin:12px auto 0;display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:transparent;color:var(--navfg);opacity:.75;border-radius:8px 8px 0 0;padding:9px 16px;border:0}
+.tab[aria-selected="true"]{background:var(--bg);color:var(--fg);opacity:1}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;font-weight:600;border:1px solid transparent;border-radius:6px;padding:8px 12px;cursor:pointer;background:var(--navfg);color:var(--nav)}
+button:disabled{opacity:.5;cursor:default}
+button.on{background:var(--acc);color:var(--accfg)}
+button.gh{background:transparent;color:var(--navfg);border-color:color-mix(in srgb,var(--navfg) 40%,transparent)}
+button.pri{background:var(--acc);color:var(--accfg)}
+button.sec{background:transparent;color:var(--fg);border-color:var(--line)}
+button.mini{padding:3px 8px;font-size:12px;font-weight:500}
+button.dng{background:transparent;color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,transparent)}
+.clock{font-size:12px;opacity:.9}
+.prog{height:4px;background:color-mix(in srgb,var(--navfg) 20%,transparent);border-radius:2px;margin:10px auto 0;max-width:1280px}
+.prog i{display:block;height:100%;background:var(--acc);border-radius:2px;transition:width .3s}
+main{max-width:1280px;margin:0 auto;padding-block:16px 32px;padding-inline:16px;display:grid;gap:14px;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px;font-weight:600}
+.full{grid-column:1/-1}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.kpi .v{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:12px;margin-top:2px}.kpi .m{font-size:11px;color:var(--mut)}
+.kpi.ok .v{color:var(--ok)}.kpi.bad .v{color:var(--err)}
+.read{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.read dt{color:var(--mut)}.read dd{margin:0;word-break:break-all}
+.verdict{margin-top:10px;padding:8px 10px;border-radius:6px;font-weight:600;font-size:13px}
+.verdict.ok{background:var(--okbg);color:var(--ok)}.verdict.warn{background:var(--warnbg);color:var(--warn)}.verdict.error{background:var(--errbg);color:var(--err)}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.lect-ENTRADA{background:var(--okbg);color:var(--ok)}.lect-POSICION{background:var(--gry);color:var(--fg)}.lect-SALIDA{background:var(--errbg);color:var(--err)}
+.alert{border-left:4px solid var(--err);background:var(--errbg);padding:6px 9px;margin-bottom:6px;font-size:13px;border-radius:4px}
+.noal{color:var(--ok);font-size:13px}.muted{color:var(--mut);font-size:13px}
+.ev{font-size:12px;padding:5px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:88px 78px minmax(0,1fr);gap:8px}
+.ev .t{color:var(--mut)}.ev .k{font-weight:600}
+.ev.error .k{color:var(--err)}.ev.warn .k{color:var(--warn)}.ev.ok .k{color:var(--ok)}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-size:11px;color:var(--mut);font-weight:600;padding:6px;border-bottom:2px solid var(--line);white-space:nowrap}
+th.calc{color:var(--acc)}
+td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr.editing td{background:var(--warnbg)}
+.sem{padding:2px 7px;border-radius:4px;font-weight:600;font-size:11px}
+.ROJO{background:var(--errbg);color:var(--err)}.AMARILLO{background:var(--warnbg);color:var(--warn)}.VERDE{background:var(--okbg);color:var(--ok)}.DESPACHADO{background:var(--gry);color:var(--mut)}
+.zona{padding:2px 7px;border-radius:4px;font-weight:600;font-size:11px;color:var(--ztx)}
+.si{color:var(--ok);font-weight:600}.no{color:var(--err);font-weight:600}
+select,input,textarea{font:inherit;padding:7px 8px;border-radius:6px;border:1px solid var(--line);background:var(--inp);color:var(--fg);width:100%;min-width:0}
+textarea{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:12px;min-height:110px;resize:vertical}
+.find{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.find select{width:auto}
+.found{font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:var(--mut);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+.rule{font-size:12px;color:var(--mut);margin-top:10px;line-height:1.5}.rule b{color:var(--fg)}
+svg text{font-family:"IBM Plex Sans",Arial,sans-serif}
+.flash{animation:fl 1.2s}@keyframes fl{0%{stroke:var(--acc);stroke-width:7}100%{}}
+.hl{stroke:var(--acc)!important;stroke-width:5!important}
+/* base de datos */
+.form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);min-width:0}
+.form .w2{grid-column:span 2}
+.calcbox{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 18px;padding:9px 11px;border-radius:8px;background:var(--gry);font-size:13px}
+.calcbox b{font-variant-numeric:tabular-nums}
+.actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{font-size:13px}.msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;margin-bottom:10px;font-size:13px}
+.stats b{font-size:18px;display:block;font-variant-numeric:tabular-nums}
+.status{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:3px 9px;border-radius:12px;background:color-mix(in srgb,var(--navfg) 15%,transparent)}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--warn)}.status.db i{background:var(--ok)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.toolbar input{max-width:260px}
+.inc{font-size:11px;padding:2px 7px;border-radius:4px;background:var(--gry);color:var(--mut)}
+.inc.on{background:var(--warnbg);color:var(--warn);font-weight:600}
+.empty{padding:24px;text-align:center;color:var(--mut)}
+.imp{margin-bottom:12px;padding:12px;border:1px dashed var(--line);border-radius:8px}
+.steps{margin:0 0 10px;padding-left:20px;font-size:13px;line-height:1.6}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px}.chk input{width:auto}
+.rowok{color:var(--ok);font-weight:600}.rowup{color:var(--warn);font-weight:600}.rowerr{color:var(--err);font-weight:600}
+summary{cursor:pointer}
+.hhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.filters{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-items:end}
+.filters label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);min-width:0}
+.sev{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+.sev3{background:var(--errbg);color:var(--err)}.sev2{background:var(--warnbg);color:var(--warn)}.sev1{background:var(--gry);color:var(--mut)}
+tr.open td{background:color-mix(in srgb,var(--errbg) 45%,transparent)}
+.open-b{color:var(--err);font-weight:600}.closed-b{color:var(--ok)}
+.brow{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr) 40px;gap:10px;align-items:center;font-size:13px;margin-bottom:8px;cursor:pointer}
+.brow .bar{height:12px;background:var(--gry);border-radius:3px;overflow:hidden}.brow .bar i{display:block;height:100%;background:var(--acc)}
+.brow b{text-align:right;font-variant-numeric:tabular-nums}
+.top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;font-size:13px;align-items:baseline}
+.top .d{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.clockbig{font-size:15px;font-weight:600;padding:4px 10px;border-radius:6px;background:color-mix(in srgb,var(--navfg) 14%,transparent)}
+.vel{display:flex;align-items:center;gap:6px;font-size:12px}.vel select{width:auto;padding:4px 6px;font-size:12px}.vel input{width:auto}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:min(420px,calc(100vw - 32px));background:var(--card);color:var(--fg);border:1px solid var(--line);border-left:5px solid var(--acc);border-radius:8px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.18);font-size:13px;z-index:20}
+.mail{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+.mail .mh{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mut)}.mail .ms{font-weight:600;margin:4px 0}
+.mail pre{white-space:pre-wrap;font-family:inherit;font-size:12.5px;background:var(--gry);padding:8px 10px;border-radius:6px;margin:6px 0 0}
+.horizon{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px}
+.horizon input{width:auto;padding:4px 6px;font-size:12px}
+@media(max-width:960px){main{grid-template-columns:minmax(0,1fr)}.form{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ctl{width:100%}.ev{grid-template-columns:70px minmax(0,1fr)}.ev .k{display:none}.form{grid-template-columns:minmax(0,1fr)}.form .w2{grid-column:auto}}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="hw">
+  <h1>Prototipo 5S + RFID · Almacén de producto terminado<small>Base de pedidos → lecturas RFID simuladas → ubicación por zona de despacho (martes/jueves) → salida</small></h1>
+  <span class="status" id="status"><i></i><span>Conectando con la base…</span></span>
+ </div>
+ <div class="tabs" role="tablist">
+  <button class="tab" role="tab" id="t-base" aria-selected="true">① Base de pedidos</button>
+  <button class="tab" role="tab" id="t-sim" aria-selected="false">② Simulación RFID</button>
+  <button class="tab" role="tab" id="t-his" aria-selected="false">③ Historial y alertas</button>
+ </div>
+</header>
+
+<div id="toast" class="toast" hidden role="status"></div>
+<!-- ===================== BASE DE PEDIDOS ===================== -->
+<main id="v-base">
+ <section class="card full">
+  <h2 id="ftitle">Registrar pedido</h2>
+  <form class="form" id="form" autocomplete="off">
+   <label>N° de pedido (lote)<input id="f-id" required class="mono"></label>
+   <label class="w2">Cliente<input id="f-cliente" required placeholder="Ej. Pastelería Dulce"></label>
+   <label>Fecha de pedido<input id="f-fecha" type="date" required></label>
+   <label class="w2">Descripción del producto (como en la orden)<input id="f-producto" required placeholder="Ej. BASE PASTELERIA #15*30 - DORADO ESPEJO"></label>
+   <label>Largo (cm) · se lee de “#”<input id="f-largo" type="number" min="1" step="0.1"></label>
+   <label>Ancho (cm) · se lee de “#”<input id="f-ancho" type="number" min="1" step="0.1"></label>
+   <label>Unidades del lote<input id="f-unidades" type="number" min="1" step="1" required></label>
+   <label>Ingreso al almacén (fin de producción)<input id="f-ingreso" type="date" required></label>
+   <label class="w2">Incidencia a simular<select id="f-inc">
+    <option value="ninguna">Ninguna</option>
+    <option value="zona incorrecta">Se ubica en zona incorrecta</option>
+    <option value="dañado">El lote llega dañado</option>
+    <option value="sin ubicar">No se registra la posición</option>
+    <option value="no despachado">No se despacha</option>
+   </select></label>
+   <div class="calcbox" id="calc"></div>
+   <div class="actions">
+    <button type="submit" class="pri" id="f-save">Guardar pedido</button>
+    <button type="button" class="sec" id="f-cancel" hidden>Cancelar edición</button>
+    <button type="button" class="sec" id="f-clear">Limpiar</button>
+    <span class="msg" id="f-msg"></span>
+   </div>
+  </form>
+ </section>
+
+ <section class="card full">
+  <h2>Lotes registrados · 1 pedido = 1 lote = 1 etiqueta RFID</h2>
+  <div class="stats" id="stats"></div>
+  <div class="toolbar">
+   <input id="q" placeholder="Buscar pedido, cliente o producto…">
+   <button class="pri" id="b-csv">⬆ Cargar Excel</button>
+   <button class="sec" id="b-tpl">⬇ Plantilla Excel</button>
+   <button class="sec" id="b-gen">⚙ Generar demanda de prueba</button>
+   <button class="dng" id="b-reset" title="Borra los lotes guardados y vuelve a los datos de ejemplo">Restablecer ejemplo</button>
+   <button class="sec" id="b-exp">⬇ Exportar a Excel</button>
+   <span class="msg" id="exp-msg"></span>
+  </div>
+  <div id="gen" hidden class="imp">
+   <p class="muted" style="margin:0 0 8px">Crea lotes de prueba con la carga real del almacén (entre 4 y 7 lotes que ingresan por día hábil). Verás la vista previa antes de guardarlos.</p>
+   <div class="filters">
+    <label>Primer día de ingreso<input type="date" id="g-desde" value="2026-10-05"></label>
+    <label>Días hábiles<input type="number" id="g-dias" min="1" max="40" value="10"></label>
+    <label>Lotes por día (mín.)<input type="number" id="g-min" min="1" max="20" value="4"></label>
+    <label>Lotes por día (máx.)<input type="number" id="g-max" min="1" max="20" value="7"></label>
+    <label>% zona incorrecta<input type="number" id="g-pz" min="0" max="50" value="8"></label>
+    <label>% sin ubicar<input type="number" id="g-ps" min="0" max="50" value="4"></label>
+    <label>% dañados<input type="number" id="g-pd" min="0" max="50" value="3"></label>
+    <label>Semilla (otro escenario)<input type="number" id="g-sem" min="1" value="7"></label>
+   </div>
+   <div class="actions" style="margin-top:10px"><button class="pri" id="g-go">Generar vista previa</button><button class="sec" id="g-close">Cerrar</button><span class="msg" id="g-msg"></span></div>
+  </div>
+  <div id="imp" hidden class="imp">
+   <ol class="steps"><li>Descarga la <b>plantilla Excel</b> (o usa tu propio Excel con los mismos encabezados).</li><li>Llena <b>una fila por lote</b>. La medida se lee sola de la descripción (<span class="mono">#15*30</span> → 15 × 30 cm; <span class="mono">#30</span> → 30 × 30 cm).</li><li>Sube el archivo, revisa la vista previa y confirma.</li></ol>
+   <div class="actions"><input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.txt" style="width:auto"><button class="sec" id="imp-close">Cerrar</button><span class="msg" id="imp-msg"></span></div>
+   <details style="margin-top:8px"><summary class="muted">…o pega filas copiadas desde Excel</summary>
+    <textarea id="imp-txt" placeholder="N° pedido (lote)	Cliente	Descripción del producto	Unidades	Fecha de pedido	Fecha de ingreso al almacén	Incidencia"></textarea>
+    <div class="actions" style="margin-top:6px"><button class="sec" id="imp-read">Leer filas pegadas</button></div>
+   </details>
+   <div id="imp-prev" hidden style="margin-top:12px">
+    <div class="stats" id="imp-sum"></div>
+    <div class="scroll" style="max-height:320px;overflow-y:auto"><table id="imp-tab"></table></div>
+    <div class="actions" style="margin-top:10px">
+     <label class="chk"><input type="checkbox" id="imp-rep"> <span id="imp-rep-t">Reemplazar la base</span></label>
+     <button class="pri" id="imp-go">Confirmar carga</button><button class="sec" id="imp-cancel">Descartar</button>
+    </div>
+   </div>
+  </div>
+  <div class="scroll"><table id="tdb"></table></div>
+  <p class="rule"><b>Columnas calculadas (en color):</b> medida = se lee del “#” de la descripción · fecha límite = fecha de pedido + 6 días · despacho = último martes o jueves ≤ fecha límite · zona = MAR si el despacho es martes, JUE si es jueves. Si el pedido ingresa al almacén el mismo día o después de su día de despacho, el sistema lo envía a la zona de emergencia AM-01.</p>
+ </section>
+</main>
+
+<!-- ===================== SIMULACIÓN ===================== -->
+<div id="v-sim" hidden>
+ <div style="background:var(--nav);color:var(--navfg);padding:10px 16px 12px">
+  <div class="hw">
+   <div class="horizon">Simular hasta <input type="date" id="corte"> <span id="nlect" class="clock"></span></div>
+   <div class="ctl" style="margin-left:auto">
+    <span class="clockbig mono" id="fecha">–</span>
+    <label class="vel">Velocidad <select id="vel">
+     <option value="1">1 s = 1 min</option><option value="10">1 s = 10 min</option><option value="30" selected>1 s = 30 min</option><option value="60">1 s = 1 h</option><option value="240">1 s = 4 h</option></select></label>
+    <label class="vel"><input type="checkbox" id="salta" checked> Saltar noches y fines de semana</label>
+    <button id="ba">▶ Reproducir</button>
+    <button id="b1" class="gh">⏭ Siguiente lectura</button>
+    <button id="br" class="gh">⟲ Reiniciar</button>
+   </div>
+  </div>
+  <div class="prog"><i id="bar"></i></div>
+ </div>
+ <main>
+  <section class="kpis full" id="kpis"></section>
+  <section class="card full">
+   <h2>Plano del almacén 7.00 m × 4.00 m · ocupación detectada por RFID <span class="muted" style="text-transform:none;letter-spacing:0">(esquema, no a escala)</span></h2>
+   <div class="scroll"><svg id="plano" viewBox="-165 -42 1230 482" width="100%" style="min-width:760px" role="img" aria-label="Plano del almacén"></svg></div>
+   <div class="legend"><span style="--c:var(--zMAR)">Posición ocupada (borde continuo)</span><span style="--c:transparent;outline:1px dashed var(--mut)">Disponible (borde punteado)</span><span style="--c:var(--err)">Borde rojo: lote mal ubicado</span><span style="--c:var(--acc)">Destello: lectura RFID reciente</span></div>
+  </section>
+  <section class="card">
+   <h2>Última lectura RFID y decisión del sistema</h2>
+   <div id="lectura"></div>
+   <p class="rule"><b>Regla de zona:</b> fecha límite = pedido + 6 días → despacho = último martes o jueves ≤ fecha límite → zona MAR o JUE. Un lote dañado solo puede ir a NC-01; AM-01 acepta cualquier lote urgente. El camión carga a las 12:00 los martes y jueves.</p>
+  </section>
+  <section class="card">
+   <h2>Alertas automáticas</h2>
+   <div id="alertas"></div>
+   <h2 style="margin-top:16px">Localizar pedido (búsqueda por RFID)</h2>
+   <div class="find"><select id="selp"></select></div>
+   <div class="found" id="found"></div>
+  </section>
+  <section class="card">
+   <h2>Historial de lecturas</h2>
+   <div id="eventos"></div>
+  </section>
+  <section class="card full">
+   <h2>Lotes · semáforo de despacho</h2>
+   <div class="scroll"><table id="ped"></table></div>
+  </section>
+ </main>
+</div>
+
+<!-- ===================== HISTORIAL Y ALERTAS ===================== -->
+<main id="v-his" hidden>
+ <section class="card full">
+  <div class="hhead"><div><h2 style="margin:0">Reporte del jefe de almacén</h2><p class="muted" id="h-corte" style="margin:4px 0 0"></p></div>
+   <div class="ctl"><button class="sec" id="h-fin">Simular hasta el final</button><button class="sec" id="h-exp">⬇ Exportar a Excel</button><span class="msg" id="h-msg"></span></div></div>
+  <div class="filters">
+   <label>Desde<input type="date" id="h-desde"></label>
+   <label>Hasta<input type="date" id="h-hasta"></label>
+   <label>Tipo de alerta<select id="h-tipo"><option value="">Todas</option></select></label>
+   <label>Estado<select id="h-est"><option value="">Todas</option><option value="abierta">Abiertas (sin corregir)</option><option value="cerrada">Cerradas</option></select></label>
+   <label>Cliente<select id="h-cli"><option value="">Todos</option></select></label>
+   <label>Lote<input id="h-lote" placeholder="P-01…"></label>
+   <label>Ordenar<select id="h-ord"><option value="dur">Más tiempo sin corregir</option><option value="rec">Más recientes</option><option value="sev">Más graves</option></select></label>
+   <button class="sec" id="h-clr" style="align-self:end">Limpiar filtros</button>
+  </div>
+ </section>
+ <section class="kpis full" id="h-kpis"></section>
+ <section class="card">
+  <h2>Incidencias por tipo</h2>
+  <div id="h-tipos"></div>
+ </section>
+ <section class="card">
+  <h2>Lotes con más tiempo mal ubicados o sin ubicación</h2>
+  <div id="h-top"></div>
+ </section>
+ <section class="card full">
+  <h2>Notificaciones por correo</h2>
+  <div class="filters" style="margin-bottom:10px">
+   <label style="grid-column:span 2">Enviar a<input type="email" id="m-to" placeholder="jefe.almacen@empresa.com"></label>
+   <label>Avisar si una alerta sigue abierta más de<select id="m-umb"><option value="1">1 hora</option><option value="2">2 horas</option><option value="4" selected>4 horas</option><option value="8">8 horas</option><option value="24">24 horas</option></select></label>
+   <label class="chk" style="flex-direction:row;align-self:end"><input type="checkbox" id="m-on" checked> Notificaciones activas</label>
+   <button class="sec" id="m-save" style="align-self:end">Guardar configuración</button>
+  </div>
+  <p class="rule" style="margin-top:0">Cuando un lote sigue con alerta (zona incorrecta, sin posición, dañado o despacho vencido) más tiempo que el límite, el sistema genera un correo al responsable. En este prototipo el envío es <b>simulado</b> (bandeja de salida); cada correo puede abrirse en tu programa de correo o copiarse.</p>
+  <div id="m-list"></div>
+  <div class="actions"><button class="sec" id="m-mas" hidden>Ver más correos</button><span class="msg" id="m-msg"></span></div>
+ </section>
+ <section class="card full">
+  <h2>Cuadro de incidencias <span id="h-n" class="muted" style="text-transform:none;letter-spacing:0"></span></h2>
+  <div class="scroll"><table id="h-tab"></table></div>
+  <p class="rule"><b>Tiempo sin corregir:</b> desde que el lector RFID detectó el problema hasta que se corrigió (reubicación leída en la posición correcta, registro de posición o despacho). Si sigue abierta, se mide hasta la fecha de corte. Las incidencias cerradas se cuentan una vez; las abiertas se resaltan.</p>
+ </section>
+ <section class="card full">
+  <h2>Historial de lecturas RFID <span id="h-ln" class="muted" style="text-transform:none;letter-spacing:0"></span></h2>
+  <div class="filters" style="margin-bottom:8px"><label>Lector<select id="h-lec"><option value="">Todos</option><option value="ENTRADA">Arco de entrada</option><option value="POSICION">Tag de posición</option><option value="SALIDA">Arco de salida</option></select></label></div>
+  <div class="scroll"><table id="h-lect"></table></div>
+  <div class="actions" style="margin-top:8px"><button class="sec" id="h-mas" hidden>Ver más lecturas</button></div>
+ </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+"use strict";
+/* ---------- utilidades de fecha ---------- */
+const PLAZO=6, DIAS=['dom','lun','mar','mié','jue','vie','sáb'];
+const D=s=>new Date(s.slice(0,10)+'T00:00:00Z'), ISO=x=>x.toISOString().slice(0,10);
+const addD=(s,n)=>{const d=D(s);d.setUTCDate(d.getUTCDate()+n);return ISO(d)};
+const fmt=s=>s?DIAS[D(s).getUTCDay()]+' '+s.slice(8,10)+'/'+s.slice(5,7):'–';
+const fmtL=s=>s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'';
+function calc(p){
+ const lim=addD(p.fecha,PLAZO);const wd=D(lim).getUTCDay()||7;
+ const atras=wd>=4?wd-4:(wd>=2?wd-2:4);const des=addD(lim,-atras);
+ return{limite:lim,despacho:des,zona:D(des).getUTCDay()===2?'MARTES':'JUEVES'};
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+/* medida desde la descripción: "#15*30" → 15 × 30 ; "#30" → 30 × 30 */
+function parseMed(t){const m=String(t||'').match(/#\s*(\d+(?:[.,]\d+)?)\s*(?:[*xX×]\s*(\d+(?:[.,]\d+)?))?/);if(!m)return null;
+ const a=+m[1].replace(',','.'),b=m[2]?+m[2].replace(',','.'):a;return[a,b]}
+const habil=s=>{const w=D(s).getUTCDay();return w>=1&&w<=5};
+const sigHabil=s=>{while(!habil(s))s=addD(s,1);return s};
+/* ---------- pedidos de ejemplo (solo si la base está vacía o no disponible) ---------- */
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const CLIENTES=['Pastelería Dulce','Panadería D','Empresa A','Empresa B','Empresa C','Empresa E','Empresa F','Pizzería Napoli'];
+const CATALOGO=['BASE DE TORTA #30 - LOGO {C} IMPRESO','BASE DE TORTA #25 - PLATEADO','BASE PASTELERIA #15*30 - DORADO ESPEJO','BASE PASTELERIA #25 - DORADO ESPEJO',
+ 'CAJA PIZZA #35 - KRAFT','CAJA PIZZA #40*30 - BLANCA','BANDEJA #20*30 - BLANCA','BANDEJA #15*20 - BLANCA','CAJA DELIVERY #30*20 - LOGO {C} IMPRESO',
+ 'CAJA DE TORTA #25 - CON VENTANA','CAJA #40*30 - KRAFT','CAJA #50*40 - KRAFT'];
+/* demanda de prueba: por cada día hábil ingresan entre o.min y o.max lotes; el pedido se hizo 1–3 días hábiles antes (a veces 5: llega tarde) */
+function generarDemanda(o){const r=rng(o.semilla||1),pick=a=>a[Math.floor(r()*a.length)];
+ let d=sigHabil(o.desde),n=o.inicio||1;const out=[];
+ for(let k=0;k<o.dias;k++){const cant=o.min+Math.floor(r()*(o.max-o.min+1));
+  for(let j=0;j<cant;j++){const lead=1+Math.floor(r()*3)+(r()<0.06?2:0);let f=d;for(let q=0;q<lead;q++){f=addD(f,-1);while(!habil(f))f=addD(f,-1)}
+   const c=pick(CLIENTES),desc=pick(CATALOGO).replace('{C}',c.toUpperCase()),x=r()*100,m=parseMed(desc);
+   const inc=x<o.pz?'zona incorrecta':(x<o.pz+o.ps?'sin ubicar':(x<o.pz+o.ps+o.pd?'dañado':'ninguna'));
+   out.push({id:'P-'+String(n++).padStart(4,'0'),cliente:c,producto:desc,largo:m[0],ancho:m[1],unidades:200+50*Math.floor(r()*21),fecha:f,ingreso:d,incidencia:inc})}
+  d=sigHabil(addD(d,1))}
+ return out}
+const EJEMPLO=generarDemanda({desde:'2026-10-05',dias:10,min:4,max:7,pz:8,ps:4,pd:3,semilla:7,inicio:201});
+window.__ejemplo=EJEMPLO;
+const med=p=>(p.largo&&p.ancho)?(String(p.largo).replace('.',',')+' × '+String(p.ancho).replace('.',',')+' cm'):'';
+
+/* ---------- almacén de datos: base compartida (db) o modo local ---------- */
+/* ---------- almacenamiento local (localStorage del navegador) ---------- */
+const KEY='prototipo5sRfid.lotes.v1', KCFG='prototipo5sRfid.config.v1';
+function leer(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def}catch(e){return def}}
+function guardar(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+let PEDIDOS=leer(KEY,null)||EJEMPLO.map(p=>Object.assign({},p)), MODE=leer(KEY,null)?'saved':'demo', CANWRITE=true;
+const store={
+ async save(p){const i=PEDIDOS.findIndex(x=>x.id===p.id);if(i>=0)PEDIDOS[i]=p;else PEDIDOS.push(p);MODE=guardar(KEY,PEDIDOS)?'saved':'demo';setStatus();onData()},
+ async remove(id){PEDIDOS=PEDIDOS.filter(x=>x.id!==id);MODE=guardar(KEY,PEDIDOS)?'saved':'demo';setStatus();onData()}
+};
+function setStatus(){const s=$('status');s.className='status'+(MODE==='saved'?' db':'');
+ s.lastChild.textContent=MODE==='saved'?'Base de lotes guardada en este equipo':'Datos de ejemplo · se guardarán al registrar o cargar lotes';}
+function reiniciarBase(){try{localStorage.removeItem(KEY)}catch(e){}PEDIDOS=EJEMPLO.map(p=>Object.assign({},p));MODE='demo';setStatus();onData()}
+
+/* ======================= BASE DE PEDIDOS ======================= */
+let editing=null, delAsk=null;
+function nextId(){const n=PEDIDOS.map(p=>parseInt(String(p.id).replace(/\D/g,''),10)).filter(x=>!isNaN(x));return'P-'+String((n.length?Math.max(...n):0)+1).padStart(4,'0')}
+function readForm(){return{id:$('f-id').value.trim().toUpperCase(),cliente:$('f-cliente').value.trim(),producto:$('f-producto').value.trim(),largo:+$('f-largo').value,ancho:+$('f-ancho').value,
+ unidades:+$('f-unidades').value,fecha:$('f-fecha').value,ingreso:$('f-ingreso').value,incidencia:$('f-inc').value}}
+function fillForm(p){$('f-id').value=p.id||'';$('f-cliente').value=p.cliente||'';$('f-producto').value=p.producto||'';$('f-largo').value=p.largo||'';$('f-ancho').value=p.ancho||'';
+ $('f-unidades').value=p.unidades||'';$('f-fecha').value=p.fecha||'';$('f-ingreso').value=p.ingreso||'';$('f-inc').value=p.incidencia||'ninguna';updCalc()}
+function clearForm(){editing=null;const hoy=sigHabil(PEDIDOS.length?PEDIDOS.map(p=>p.fecha).sort().pop():'2026-10-05');
+ fillForm({id:nextId(),fecha:hoy,ingreso:sigHabil(addD(hoy,2)),incidencia:'ninguna'});$('f-largo').dataset.man='';$('f-id').disabled=false;$('ftitle').textContent='Registrar pedido (lote)';$('f-save').textContent='Guardar lote';$('f-cancel').hidden=true;renderDB()}
+function updCalc(){const f=$('f-fecha').value,ing=$('f-ingreso').value;
+ const md=parseMed($('f-producto').value),L=+$('f-largo').value,A=+$('f-ancho').value;
+ const medTxt=L&&A?`<span>Medida: <b>${L} × ${A} cm</b>${md&&md[0]===L&&md[1]===A?' <span class="muted">(leída de la descripción)</span>':''}</span>`:`<span style="color:var(--warn)">Medida: no se detecta “#” en la descripción → escribe largo y ancho</span>`;
+ if(!f){$('calc').innerHTML=medTxt+'<span class="muted">Ingresa la fecha de pedido para calcular el despacho.</span>';return}
+ const c=calc({fecha:f});const am=ing&&ing>=c.despacho;
+ const fin=(!habil(f)?`<span style="color:var(--err)">⚠ La fecha de pedido cae ${DIAS[D(f).getUTCDay()]}: la empresa trabaja de lunes a viernes</span>`:'')+(ing&&!habil(ing)?`<span style="color:var(--err)">⚠ El ingreso cae ${DIAS[D(ing).getUTCDay()]}: debe ser de lunes a viernes</span>`:'');
+ $('calc').innerHTML=medTxt+fin+`<span>Fecha límite: <b>${fmt(c.limite)}</b></span><span>Despacho: <b>${fmt(c.despacho)}</b></span><span>Zona asignada: <span class="zona" style="background:var(--z${c.zona==='MARTES'?'MAR':'JUE'})">${c.zona}</span></span>`+
+  (am?`<span style="color:var(--err)">⚠ Ingresa el ${fmt(ing)}: llega en o después del día de despacho → AM-01 (emergencia)</span>`:(ing?`<span>Días en almacén antes del despacho: <b>${Math.round((D(c.despacho)-D(ing))/864e5)}</b></span>`:''));}
+function valida(p,isNew){
+ if(!(p.largo>0&&p.ancho>0)){const m=parseMed(p.producto);if(m){p.largo=m[0];p.ancho=m[1]}}
+ if(!/^[A-Z0-9-]{2,20}$/.test(p.id))return'El N° de pedido solo admite letras, números y guiones.';
+ if(isNew&&PEDIDOS.some(x=>x.id===p.id))return'Ya existe el pedido '+p.id+'.';
+ if(!p.cliente||!p.producto)return'Completa cliente y producto.';
+ if(!(p.largo>0)||!(p.ancho>0))return'No se detecta la medida: la descripción debe llevar “#30” o “#15*30”, o escribe largo y ancho.';
+ if(!(p.unidades>0)||!Number.isInteger(p.unidades))return'Las unidades deben ser un número entero positivo.';
+ if(!p.fecha||!p.ingreso)return'Completa las fechas.';
+ if(!habil(p.fecha))return'La fecha de pedido cae '+DIAS[D(p.fecha).getUTCDay()]+' (la empresa trabaja de lunes a viernes).';
+ if(!habil(p.ingreso))return'La fecha de ingreso cae '+DIAS[D(p.ingreso).getUTCDay()]+' (la empresa trabaja de lunes a viernes).';
+ if(p.ingreso<p.fecha)return'La fecha de ingreso no puede ser anterior a la fecha de pedido.';
+ return null;}
+async function onSubmit(e){e.preventDefault();const p=readForm();const err=valida(p,!editing);const m=$('f-msg');
+ if(err){m.className='msg err';m.textContent=err;return}
+ if(!CANWRITE){m.className='msg err';m.textContent='No tienes permiso para modificar la base.';return}
+ $('f-save').disabled=true;
+ try{await store.save(p);m.className='msg ok';m.textContent=(editing?'Lote actualizado: ':'Lote registrado: ')+p.id;clearForm()}
+ catch(x){m.className='msg err';m.textContent=x&&x.code==='quota_exceeded'?'La base está llena; elimina pedidos antiguos.':'No se pudo guardar ('+(x&&x.code||'error')+').';if(x&&x.code==='invalid_argument'){CANWRITE=false;setStatus()}}
+ $('f-save').disabled=false;}
+function renderDB(){
+ const q=$('q').value.trim().toLowerCase();
+ const list=PEDIDOS.slice().sort((a,b)=>a.id<b.id?-1:1).filter(p=>!q||(p.id+' '+p.cliente+' '+p.producto).toLowerCase().includes(q));
+ const all=PEDIDOS.map(p=>Object.assign({},p,calc(p)));
+ const und=all.reduce((t,p)=>t+(+p.unidades||0),0),mar=all.filter(p=>p.zona==='MARTES'&&p.ingreso<p.despacho).length,am=all.filter(p=>p.ingreso>=p.despacho).length,jue=all.length-mar-am;
+ const cli=new Set(all.map(p=>p.cliente)).size;
+ $('stats').innerHTML=`<span><b>${all.length}</b>lotes (etiquetas RFID)</span><span><b>${cli}</b>clientes</span><span><b>${und.toLocaleString('es-PE')}</b>unidades</span><span><b>${mar}</b>zona martes</span><span><b>${jue}</b>zona jueves</span><span><b>${am}</b>emergencia AM-01</span><span><b>${all.filter(p=>p.incidencia&&p.incidencia!=='ninguna').length}</b>con incidencia simulada</span>`;
+ if(!PEDIDOS.length){$('tdb').innerHTML=`<tr><td class="empty">La base está vacía. Registra un lote arriba, carga tu Excel o <button class="sec mini" id="b-seed">carga los lotes de ejemplo</button>.</td></tr>`;const b=$('b-seed');if(b)b.onclick=seed;return}
+ $('tdb').innerHTML='<tr><th>Pedido</th><th>Cliente</th><th>Descripción del producto</th><th class="calc">Medida</th><th>Unidades</th><th>F. pedido</th><th>Ingreso almacén</th><th class="calc">F. límite</th><th class="calc">Despacho</th><th class="calc">Zona</th><th>Incidencia</th><th></th></tr>'+
+  list.map(p=>{const c=calc(p),am=p.ingreso>=c.despacho;const inc=p.incidencia||'ninguna';
+   const act=delAsk===p.id?`<span style="color:var(--err);font-size:12px">¿Eliminar?</span> <button class="dng mini" data-del2="${esc(p.id)}">Sí</button> <button class="sec mini" data-nodel="1">No</button>`:
+    `<button class="sec mini" data-ed="${esc(p.id)}">Editar</button> <button class="dng mini" data-del="${esc(p.id)}">Eliminar</button>`;
+   return`<tr class="${editing===p.id?'editing':''}"><td class="mono"><b>${esc(p.id)}</b></td><td>${esc(p.cliente)}</td><td>${esc(p.producto)}</td><td>${esc(med(p))}</td><td>${(+p.unidades).toLocaleString('es-PE')}</td><td>${fmt(p.fecha)}</td><td>${fmt(p.ingreso)}</td><td>${fmt(c.limite)}</td><td><b>${fmt(c.despacho)}</b></td><td><span class="zona" style="background:var(--z${am?'AM':(c.zona==='MARTES'?'MAR':'JUE')})">${am?'AM-01':c.zona}</span></td><td><span class="inc ${inc!=='ninguna'?'on':''}">${esc(inc)}</span></td><td>${CANWRITE?act:''}</td></tr>`}).join('')+
+  (list.length?'':'<tr><td colspan="12" class="empty">Sin resultados para la búsqueda.</td></tr>');
+}
+async function seed(){reiniciarBase()}
+$('tdb').addEventListener('click',async e=>{const t=e.target;
+ if(t.dataset.ed){const p=PEDIDOS.find(x=>x.id===t.dataset.ed);editing=p.id;fillForm(p);$('f-id').disabled=true;$('ftitle').textContent='Editar pedido '+p.id;$('f-save').textContent='Guardar cambios';$('f-cancel').hidden=false;$('f-msg').textContent='';renderDB();$('form').scrollIntoView({behavior:'smooth',block:'start'})}
+ else if(t.dataset.del){delAsk=t.dataset.del;renderDB()}
+ else if(t.dataset.nodel){delAsk=null;renderDB()}
+ else if(t.dataset.del2){const id=t.dataset.del2;delAsk=null;try{await store.remove(id);if(editing===id)clearForm()}catch(x){$('exp-msg').className='msg err';$('exp-msg').textContent='No se pudo eliminar.'}renderDB()}
+});
+/* ---------- carga desde Excel (.xlsx/.xls/.csv) o filas pegadas ---------- */
+const COLS=[['N° pedido (lote)',16],['Cliente',22],['Descripción del producto',46],['Unidades',10],['Fecha de pedido',15],['Fecha de ingreso al almacén',22],['Incidencia (solo simulación)',24]];
+const INCS=['ninguna','zona incorrecta','dañado','sin ubicar','no despachado'];
+const norm=h=>String(h==null?'':h).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+function serialToISO(n){return ISO(new Date(Date.UTC(1899,11,30)+Math.round(n)*864e5))}
+function parseDate(v){if(v==null||v==='')return'';if(typeof v==='number')return v>20000&&v<80000?serialToISO(v):'';
+ if(v instanceof Date)return ISO(new Date(Date.UTC(v.getFullYear(),v.getMonth(),v.getDate())));
+ const s=String(v).trim();let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+ m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})$/);if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0')}
+ if(/^\d{5}$/.test(s))return serialToISO(+s);return''}
+function matrixFromText(txt){const lines=txt.replace(/\r/g,'').split('\n').filter(l=>l.trim());if(!lines.length)return[];
+ const sep=lines[0].includes('\t')?'\t':(lines[0].split(';').length>=lines[0].split(',').length?';':',');
+ return lines.map(l=>l.split(sep).map(c=>c.trim().replace(/^"|"$/g,'')))}
+function rowsFromMatrix(mat){
+ let hr=mat.findIndex((r,i)=>i<15&&r.some(c=>/cliente/.test(norm(c))));
+ const head=hr>=0?mat[hr].map(norm):[];
+ const find=(test,def)=>{if(hr<0)return def;const i=head.findIndex(test);return i};
+ const idx={id:find(h=>!/fecha/.test(h)&&/pedido|lote|^id/.test(h),0),cliente:find(h=>/cliente/.test(h),1),producto:find(h=>/descripcion|producto/.test(h),2),
+  unidades:find(h=>/unidad|cantidad/.test(h),3),fecha:find(h=>/fecha/.test(h)&&/pedido/.test(h),4),ingreso:find(h=>/ingreso/.test(h),5),
+  incidencia:find(h=>/incidencia/.test(h),6),largo:find(h=>/largo/.test(h),-1),ancho:find(h=>/ancho/.test(h),-1)};
+ const out=[];
+ mat.slice(hr+1).forEach((c,k)=>{const g=key=>idx[key]>=0&&c[idx[key]]!=null?c[idx[key]]:'';
+  if(!String(g('id')).trim()&&!String(g('cliente')).trim()&&!String(g('producto')).trim())return;
+  const num=v=>typeof v==='number'?v:+String(v).replace(/\s/g,'').replace(',','.');
+  const inc=norm(g('incidencia')).replace('danado','dañado');
+  const p={fila:(hr>=0?hr:0)+k+2,id:String(g('id')).trim().toUpperCase(),cliente:String(g('cliente')).trim(),producto:String(g('producto')).trim(),
+   unidades:num(g('unidades')),fecha:parseDate(g('fecha')),ingreso:parseDate(g('ingreso')),incidencia:INCS.includes(inc)?inc:'ninguna'};
+  const L=num(g('largo')),A=num(g('ancho'));if(L>0&&A>0){p.largo=L;p.ancho=A}
+  out.push(p)});
+ return out}
+let PREV=null;
+function preview(rows){
+ const seen=new Set();
+ PREV=rows.map(p=>{let err=valida(p,false);if(!err&&seen.has(p.id))err='N° repetido en el archivo';seen.add(p.id);
+  const st=err?'error':(PEDIDOS.some(x=>x.id===p.id)?'actualiza':'nuevo');const c=!err?calc(p):null;
+  return{p,err,st,c}});
+ const ok=PREV.filter(r=>!r.err),nue=ok.filter(r=>r.st==='nuevo').length,act=ok.length-nue,bad=PREV.length-ok.length;
+ const fuera=PEDIDOS.filter(x=>!ok.some(r=>r.p.id===x.id)).length;
+ $('imp-sum').innerHTML=`<span><b>${PREV.length}</b>filas leídas</span><span><b class="rowok">${nue}</b>lotes nuevos</span><span><b class="rowup">${act}</b>actualizan uno existente</span><span><b class="rowerr">${bad}</b>con error (no se cargan)</span>`;
+ $('imp-tab').innerHTML='<tr><th>Fila</th><th>Estado</th><th>N° lote</th><th>Cliente</th><th>Descripción</th><th class="calc">Medida</th><th>Unid.</th><th>F. pedido</th><th>Ingreso</th><th class="calc">Despacho</th><th class="calc">Zona</th><th>Observación</th></tr>'+
+  PREV.map(r=>{const p=r.p,am=r.c&&p.ingreso>=r.c.despacho;return`<tr><td>${p.fila}</td><td class="${r.err?'rowerr':(r.st==='nuevo'?'rowok':'rowup')}">${r.err?'✖ error':(r.st==='nuevo'?'✚ nuevo':'↻ actualiza')}</td><td class="mono">${esc(p.id)}</td><td>${esc(p.cliente)}</td><td>${esc(p.producto)}</td><td>${p.largo?esc(med(p)):'–'}</td><td>${p.unidades||'–'}</td><td>${p.fecha?fmt(p.fecha):'–'}</td><td>${p.ingreso?fmt(p.ingreso):'–'}</td><td>${r.c?fmt(r.c.despacho):'–'}</td><td>${r.c?(am?'AM-01':r.c.zona):'–'}</td><td style="white-space:normal;min-width:220px">${r.err?esc(r.err):(p.incidencia!=='ninguna'?'incidencia: '+esc(p.incidencia):'')}</td></tr>`}).join('');
+ $('imp-rep').checked=false;$('imp-rep-t').textContent=`Reemplazar la base: eliminar los ${fuera} lote(s) que no están en el archivo`;$('imp-rep').parentNode.hidden=!fuera;
+ $('imp-go').disabled=!ok.length;$('imp-go').textContent=`Confirmar carga (${ok.length} lote${ok.length===1?'':'s'})`;
+ $('imp-prev').hidden=false;$('imp-msg').textContent='';
+}
+let rsAsk=false;$('b-reset').onclick=()=>{const b=$('b-reset');if(!rsAsk){rsAsk=true;b.textContent='¿Seguro? Pulsa otra vez';setTimeout(()=>{rsAsk=false;b.textContent='Restablecer ejemplo'},4000);return}rsAsk=false;b.textContent='Restablecer ejemplo';reiniciarBase()};
+$('b-csv').onclick=()=>{$('imp').hidden=!$('imp').hidden;$('gen').hidden=true};
+$('b-gen').onclick=()=>{$('gen').hidden=!$('gen').hidden};$('g-close').onclick=()=>{$('gen').hidden=true};
+$('g-go').onclick=()=>{const v=i=>+$(i).value;const o={desde:$('g-desde').value||'2026-10-05',dias:Math.min(40,Math.max(1,v('g-dias'))),min:Math.max(1,v('g-min')),max:Math.max(v('g-min'),v('g-max')),pz:v('g-pz'),ps:v('g-ps'),pd:v('g-pd'),semilla:v('g-sem')||1};
+ const ids=PEDIDOS.map(p=>parseInt(String(p.id).replace(/\D/g,''),10)).filter(x=>!isNaN(x));o.inicio=(ids.length?Math.max(...ids):200)+1;
+ const rows=generarDemanda(o).map((p,i)=>Object.assign({fila:i+1},p));$('gen').hidden=true;$('imp').hidden=false;preview(rows);
+ $('imp-msg').className='msg ok';$('imp-msg').textContent=rows.length+' lotes generados ('+o.dias+' días hábiles). Revisa y confirma; marca “Reemplazar la base” para usar solo este escenario.'};
+$('imp-close').onclick=()=>{$('imp').hidden=true};
+$('imp-cancel').onclick=()=>{PREV=null;$('imp-prev').hidden=true;$('imp-file').value=''};
+$('imp-read').onclick=()=>{const rows=rowsFromMatrix(matrixFromText($('imp-txt').value));if(!rows.length){$('imp-msg').className='msg err';$('imp-msg').textContent='No se encontraron filas.';return}preview(rows)};
+$('imp-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;const m=$('imp-msg');m.className='msg';m.textContent='Leyendo '+f.name+'…';
+ try{let mat;
+  if(/\.(csv|txt)$/i.test(f.name))mat=matrixFromText(await f.text());
+  else{if(typeof XLSX==='undefined')throw new Error('lector de Excel no disponible; guarda el archivo como CSV');
+   const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});const name=wb.SheetNames.find(n=>/lote|pedido|base/i.test(n))||wb.SheetNames[0];
+   mat=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:''})}
+  const rows=rowsFromMatrix(mat);if(!rows.length)throw new Error('el archivo no tiene filas de lotes');preview(rows)}
+ catch(x){m.className='msg err';m.textContent='No se pudo leer: '+(x.message||x)}};
+$('imp-go').onclick=async()=>{const m=$('imp-msg');if(!PREV)return;if(!CANWRITE){m.className='msg err';m.textContent='Sin permiso de escritura.';return}
+ const ok=PREV.filter(r=>!r.err).map(r=>{const p=Object.assign({},r.p);delete p.fila;return p});const rep=$('imp-rep').checked;
+ $('imp-go').disabled=true;let n=0,fail=0,del=0;
+ for(const p of ok){try{await store.save(p);n++}catch(x){fail++}m.textContent='Guardando… '+n+'/'+ok.length}
+ if(rep){for(const x of PEDIDOS.filter(x=>!ok.some(p=>p.id===x.id))){try{await store.remove(x.id);del++}catch(e){fail++}}}
+ m.className='msg '+(fail?'err':'ok');m.textContent=n+' lote(s) cargado(s)'+(del?' · '+del+' eliminado(s)':'')+(fail?' · '+fail+' no se pudieron guardar':'')+'.';
+ PREV=null;$('imp-prev').hidden=true;$('imp-file').value='';};
+/* plantilla y exportación en Excel */
+async function entregar(nombre,crear,csv){const m=$('exp-msg');m.className='msg';
+ if(typeof XLSX!=='undefined'){try{const wb=crear();const buf=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+   const url=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+   const a=document.createElement('a');a.href=url;a.download=nombre;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+   m.className='msg ok';m.textContent='Archivo '+nombre+' descargado.';return}catch(x){}}
+ try{await navigator.clipboard.writeText(csv);m.className='msg ok';m.textContent='Copiado al portapapeles: pégalo en Excel (A1).'}catch(e){m.className='msg err';m.textContent='La descarga no está disponible en esta vista.'}}
+function hoja(aoa,widths){const ws=XLSX.utils.aoa_to_sheet(aoa);ws['!cols']=widths.map(w=>({wch:w}));return ws}
+$('b-tpl').onclick=()=>{const ej=[['P-0201','Pastelería Dulce','BASE PASTELERIA #15*30 - DORADO ESPEJO',400,'12/10/2026','14/10/2026','ninguna'],['P-0202','Pastelería Dulce','BASE DE TORTA #30 - LOGO IMPRESO',600,'12/10/2026','15/10/2026','ninguna']];
+ entregar('Plantilla_Base_Lotes.xlsx',()=>{const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,hoja([COLS.map(c=>c[0])].concat(ej),COLS.map(c=>c[1])),'Lotes');
+  XLSX.utils.book_append_sheet(wb,hoja([['Instrucciones'],['Una fila = un lote = una etiqueta RFID. Si un cliente pide 5 lotes de distintas medidas, van 5 filas.'],['La medida se lee de la descripción: #15*30 = 15 × 30 cm; #30 = 30 × 30 cm.'],['Fechas en DD/MM/AAAA, solo de lunes a viernes.'],['Incidencia (solo para la simulación): '+INCS.join(' / ')],['El sistema calcula fecha límite (+6 días), día de despacho (martes/jueves) y zona.']],[100]),'Instrucciones');return wb},
+  [COLS.map(c=>c[0])].concat(ej).map(r=>r.join('\t')).join('\n'))};
+$('b-exp').onclick=()=>{const head=['N° pedido (lote)','Cliente','Descripción del producto','Largo (cm)','Ancho (cm)','Unidades','Fecha de pedido','Fecha de ingreso al almacén','Fecha límite','Día de despacho','Zona','Incidencia (solo simulación)'];
+ const rows=PEDIDOS.slice().sort((a,b)=>a.id<b.id?-1:1).map(p=>{const c=calc(p);return[p.id,p.cliente,p.producto,p.largo,p.ancho,p.unidades,fmtL(p.fecha),fmtL(p.ingreso),fmtL(c.limite),fmtL(c.despacho),p.ingreso>=c.despacho?'AM-01':c.zona,p.incidencia]});
+ entregar('Base_Lotes_Almacen.xlsx',()=>{const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,hoja([head].concat(rows),[16,22,46,10,10,10,14,22,13,15,10,24]),'Lotes');return wb},
+  [head].concat(rows).map(r=>r.join('\t')).join('\n'))};
+['f-fecha','f-ingreso'].forEach(i=>$(i).addEventListener('input',updCalc));
+$('f-producto').addEventListener('input',()=>{if(!$('f-largo').dataset.man){const m=parseMed($('f-producto').value);$('f-largo').value=m?m[0]:'';$('f-ancho').value=m?m[1]:''}updCalc()});
+['f-largo','f-ancho'].forEach(i=>$(i).addEventListener('input',()=>{$('f-largo').dataset.man='1';updCalc()}));
+$('form').addEventListener('submit',onSubmit);
+$('f-cancel').onclick=clearForm;$('f-clear').onclick=()=>{$('f-msg').textContent='';clearForm()};
+$('q').addEventListener('input',renderDB);
+
+/* ======================= SIMULACIÓN RFID ======================= */
+const POS=[['MAR-01','MARTES'],['MAR-02','MARTES'],['JUE-01','JUEVES'],['JUE-02','JUEVES'],['AM-01','EMERGENCIA'],
+ ['MP-P01','MP PLANCHAS'],['MP-P02','MP PLANCHAS'],['MP-B01','MP BOBINAS'],['MP-B02','MP BOBINAS'],['NC-01','NO CONFORME'],['TR-01','TARJETA ROJA']]
+ .map((p,i)=>({cod:p[0],zona:p[1],epc:'E2806894000050000000'+String(i+1).padStart(4,'0')}));
+const posBy=c=>POS.find(x=>x.cod===c);
+let GUION=[], S=null, corteUser=null;
+const hm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+
+/* Genera la secuencia de lecturas RFID a partir de la base de pedidos */
+function generar(pedidos,corte){
+ const ps=pedidos.map(p=>Object.assign({},p,calc(p))).filter(p=>p.ingreso&&p.ingreso<=corte).sort((a,b)=>a.ingreso<b.ingreso?-1:a.ingreso>b.ingreso?1:(a.id<b.id?-1:1));
+ const ev=[];let n=0;const carga={};POS.forEach(p=>carga[p.cod]=0);const lotes=[];
+ const minuto={},porDia={},idxDia={};ps.forEach(p=>porDia[p.ingreso]=(porDia[p.ingreso]||0)+1);
+ for(const p of ps){
+  const k=idxDia[p.ingreso]=(idxDia[p.ingreso]||0)+1; // ingresos repartidos en el turno 08:00–16:00
+  const t=480+Math.floor((k-1)*480/porDia[p.ingreso])+((k*7)%11);
+  const epc='E2801170000020A1'+String(++n).padStart(8,'0');
+  const dan=p.incidencia==='dañado';
+  ev.push({ts:p.ingreso+'T'+hm(t),lector:'ENTRADA',epc,pedido:p.id,estado:dan?'DAÑADO':'OK'});
+  let cod;
+  if(dan)cod='NC-01';
+  else if(p.ingreso>=p.despacho)cod='AM-01';
+  else{const z=p.incidencia==='zona incorrecta'?(p.zona==='MARTES'?'JUE':'MAR'):(p.zona==='MARTES'?'MAR':'JUE');cod=carga[z+'-01']<=carga[z+'-02']?z+'-01':z+'-02'}
+  carga[cod]++;
+  if(p.incidencia!=='sin ubicar')ev.push({ts:p.ingreso+'T'+hm(t+2),lector:'POSICION',epc,epcPos:posBy(cod).epc});
+  if(p.incidencia==='zona incorrecta'&&cod!=='AM-01'){ // el almacenero reubica tras ver la alerta: el mismo día (1–5 h después) o el siguiente día hábil
+   const z=p.zona==='MARTES'?'MAR':'JUE';const ok=carga[z+'-01']<=carga[z+'-02']?z+'-01':z+'-02';
+   let dc=p.ingreso,tc=t+2+60+((n*97)%240);if(tc>17*60){dc=sigHabil(addD(p.ingreso,1));tc=495+((n*13)%60)}
+   if(dc<=corte&&(dc<p.despacho||(dc===p.despacho&&tc<720))){carga[cod]--;carga[ok]++;ev.push({ts:dc+'T'+hm(tc),lector:'POSICION',epc,epcPos:posBy(ok).epc})}}
+  lotes.push({epc,p,dan,ing:p.ingreso+'T'+hm(t)});
+ }
+ if(ps.length){ // despachos martes y jueves a las 12:00
+  const ini=ps[0].ingreso;const enviados=new Set();
+  for(let d=ini;d<=corte;d=addD(d,1)){const wd=D(d).getUTCDay();if(wd!==2&&wd!==4)continue;
+   let m=720;
+   for(const l of lotes){if(enviados.has(l.epc)||l.dan||l.p.incidencia==='no despachado')continue;
+    if(l.ing<d+'T12:00'&&l.p.despacho<=d){ev.push({ts:d+'T'+hm(m),lector:'SALIDA',epc:l.epc});m+=1;enviados.add(l.epc)}}
+  }
+ }
+ ev.sort((a,b)=>a.ts<b.ts?-1:a.ts>b.ts?1:0);
+ return ev;
+}
+function initSim(){
+ const peds=PEDIDOS.map(p=>Object.assign({},p,calc(p)));
+ const ini=GUION.length?GUION[0].ts.slice(0,10)+'T07:00':(peds.length?peds.map(p=>p.fecha).sort()[0]+'T07:00':'2026-10-05T07:00');
+ S={pedidos:peds,lotes:{},eventos:[],todos:[],hoy:ini,paso:0,ultima:null};
+}
+function procesar(r){
+ const ts=r.ts;S.hoy=ts;let res;
+ let extra={};
+ const log=(tipo,texto,nivel)=>{const e=Object.assign({ts,lector:r.lector,epc:r.epc,tipo,texto,nivel},extra);S.eventos.unshift(e);S.todos.push(e)};
+ const ped=id=>S.pedidos.find(p=>p.id===id);
+ if(r.lector==='ENTRADA'){const p=ped(r.pedido);
+  S.lotes[r.epc]={epc:r.epc,pedido:p.id,estado:r.estado,lote:p.id,zona:p.zona,ingreso:ts,pos:null,despachado:false,salida:null};
+  const urg=ts.slice(0,10)>=p.despacho;
+  const dest=r.estado==='DAÑADO'?'NC-01 (lote dañado)':(urg?'AM-01 (llega en/después de su día de despacho)':'zona '+p.zona+' (despacho '+fmt(p.despacho)+')');
+  res={nivel:r.estado==='DAÑADO'||urg?'warn':'ok',mensaje:'Ingreso lote '+p.id+' ('+p.cliente+', '+med(p)+') → ubicar en '+dest};
+  extra={pedido:p.id};log('INGRESO',res.mensaje,res.nivel);
+ }else if(r.lector==='POSICION'){const l=S.lotes[r.epc],pos=POS.find(x=>x.epc===r.epcPos);
+  const antes=l.pos;l.pos=pos.cod;const ok=l.estado==='DAÑADO'?pos.cod==='NC-01':(pos.zona===l.zona||pos.zona==='EMERGENCIA');
+  res={nivel:ok?'ok':'error',mensaje:l.lote+(antes?' reubicado de '+antes+' a ':' ubicado en ')+pos.cod+(ok?' (correcto)':' – ZONA INCORRECTA, corresponde '+(l.estado==='DAÑADO'?'NC-01':l.zona))};
+  extra={pedido:l.pedido,pos:pos.cod,ok};log(antes?'REUBICACIÓN':'UBICACIÓN',res.mensaje,res.nivel);
+ }else{const l=S.lotes[r.epc],p=ped(l.pedido);l.despachado=true;l.salida=ts;const desde=l.pos||'sin posición';l.pos=null;
+  let nivel='ok',txt='Salida lote '+l.lote+' desde '+desde;
+  if(ts.slice(0,10)>p.limite){nivel='error';txt+=' – FUERA DE PLAZO'}else txt+=' – dentro de plazo';
+  res={nivel,mensaje:txt};extra={pedido:l.pedido,pos:desde};log('DESPACHO',txt,nivel);}
+ S.eventos=S.eventos.slice(0,60);S.ultima={r,res};
+}
+function estado(){
+ const lotes=Object.values(S.lotes),hoy=S.hoy.slice(0,10);
+ const tab=S.pedidos.slice().sort((a,b)=>a.id<b.id?-1:1).map(p=>{const ls=lotes.filter(l=>l.pedido===p.id),sal=ls.filter(l=>l.despachado);
+  const l0=ls[0];const est=!l0?'EN PRODUCCIÓN':(l0.despachado?'DESPACHADO':'EN ALMACÉN');
+  const dias=Math.round((D(p.despacho)-D(hoy))/864e5);
+  const semaforo=est==='DESPACHADO'?'DESPACHADO':(dias<=0?'ROJO':(dias<=2?'AMARILLO':'VERDE'));
+  const ultima=sal.map(l=>l.salida).sort().pop()||null;
+  return Object.assign({},p,{ls,ubic:!l0?'–':(l0.despachado?'salió '+fmt(l0.salida)+' '+l0.salida.slice(11,16):(l0.pos||'sin posición')),estado:est,semaforo,salida:ultima,aTiempo:est==='DESPACHADO'?ultima.slice(0,10)<=p.limite:null});});
+ const enAlm=lotes.filter(l=>!l.despachado);
+ const val=l=>{if(!l.pos)return'SIN POSICIÓN';const pos=posBy(l.pos);if(l.estado==='DAÑADO')return l.pos==='NC-01'?'OK':'DAÑADO FUERA DE NC';return(pos.zona===l.zona||pos.zona==='EMERGENCIA')?'OK':'ZONA INCORRECTA'};
+ const pos=POS.map(x=>{const ls=enAlm.filter(l=>l.pos===x.cod);return Object.assign({},x,{lotes:ls,ocupada:ls.length>0})});
+ const al=[];
+ enAlm.forEach(l=>{const v=val(l);
+  if(v==='ZONA INCORRECTA')al.push(['Zona incorrecta','lote '+l.lote+' está en '+l.pos+'; corresponde zona '+l.zona]);
+  if(v==='SIN POSICIÓN')al.push(['Lote sin posición','lote '+l.lote+' ingresó y no registra posición']);
+  if(v==='DAÑADO FUERA DE NC')al.push(['Dañado fuera de NC',l.lote]);
+  if(l.estado==='DAÑADO'&&v==='OK')al.push(['Lote dañado en NC-01','lote '+l.lote+': reponer producción antes del '+fmt(S.pedidos.find(p=>p.id===l.pedido).despacho)]);});
+ tab.filter(p=>p.semaforo==='ROJO'&&p.despacho<hoy).forEach(p=>al.push(['Pedido vencido',p.id+' – despacho '+fmt(p.despacho)+(p.estado==='EN PRODUCCIÓN'?' (aún en producción)':'')]));
+ const hoyS=tab.filter(p=>p.semaforo==='ROJO'&&p.despacho===hoy),prod=hoyS.filter(p=>p.estado==='EN PRODUCCIÓN');
+ if(hoyS.length)al.push(['Sale hoy',hoyS.length+' lote(s) para el camión de las 12:00: '+hoyS.slice(0,8).map(p=>p.id).join(', ')+(hoyS.length>8?'…':'')+(prod.length?' · '+prod.length+' aún en producción ('+prod.map(p=>p.id).join(', ')+')':'')]);
+ const comp=tab.filter(p=>p.estado==='DESPACHADO');
+ const pct=(a,b)=>b?Math.round(1000*a/b)/10:null;
+ const kpi={nivel:pct(comp.filter(p=>p.aTiempo).length,comp.length),exact:pct(enAlm.filter(l=>val(l)==='OK').length,enAlm.length),
+  desp:comp.length,ing:lotes.length,dan:pct(lotes.filter(l=>l.estado==='DAÑADO').length,lotes.length),
+  ocup:pct(pos.slice(0,5).filter(x=>x.ocupada).length,5),enAlm:enAlm.length};
+ return{hoy,tab,pos,al,kpi};
+}
+const ZC={'MARTES':'var(--zMAR)','JUEVES':'var(--zJUE)','EMERGENCIA':'var(--zAM)','MP PLANCHAS':'var(--zMP)','MP BOBINAS':'var(--zMP)','NO CONFORME':'var(--zNC)','TARJETA ROJA':'var(--zTR)'};
+/* plano según el diseño del almacén (esquema): x 0–900, y 0–400 */
+const L={'MAR-01':[38,58,98,82],'MAR-02':[154,58,98,82],'JUE-01':[290,58,98,82],'JUE-02':[406,58,98,82],'AM-01':[570,68,98,74],
+ 'MP-P01':[30,302,98,88],'MP-P02':[138,302,98,88],'MP-B01':[258,302,98,88],'MP-B02':[366,302,98,88],'NC-01':[495,314,100,78],'TR-01':[630,314,100,78]};
+const DIM={'NC-01':'1.20 × 1.20 m'};const dimOf=c=>DIM[c]||(/^MP|^TR/.test(c)?'1.20 × 1.00 m':'1.20 × 0.80 m');
+const ZONAS=[[20,6,250,138,'#dcefd6','#2e8b3a','ZONA MARTES',['Lotes PT que se despachan el martes']],
+ [278,6,242,138,'#d7e6f8','#1e6fd9','ZONA JUEVES',['Lotes PT que se despachan el jueves']],
+ [528,6,180,138,'#ecdccb','#8a5a2b','ATENCIÓN DE EMERGENCIA',['Lotes atrasados o urgentes','fuera del día de despacho']],
+ [20,256,224,138,'#fbf0c8','#e3b21b','MP – PLANCHAS',['Materia prima en planchas']],
+ [250,256,222,138,'#fbf0c8','#e3b21b','MP – BOBINAS',['Materia prima en bobinas']],
+ [478,256,134,138,'#fbdcc2','#e8771e','NO CONFORME',['Lotes dañados','en evaluación']],
+ [618,256,124,138,'#f6d3d3','#c62828','TARJETA ROJA',['En evaluación','(desechos y merma)']]];
+const POSF={'MARTES':'#9cc98a','JUEVES':'#8db8e0','EMERGENCIA':'#c9a27a','MP PLANCHAS':'#ecd27a','MP BOBINAS':'#ecd27a','NO CONFORME':'#f0ad74','TARJETA ROJA':'#e69494'};
+function plano(s,last,hlPos){
+ const T=(x,y,t,o)=>`<text x="${x}" y="${y}" ${o||''}>${t}</text>`;
+ let g=`<rect x="0" y="0" width="900" height="400" fill="var(--floor)" stroke="var(--wall)" stroke-width="5"/>`;
+ // pasillo
+ g+=`<rect x="0" y="150" width="900" height="100" fill="#d9d9d9"/><line x1="0" y1="152" x2="900" y2="152" stroke="#f1c232" stroke-width="5" stroke-dasharray="22 10"/><line x1="0" y1="248" x2="900" y2="248" stroke="#f1c232" stroke-width="5" stroke-dasharray="22 10"/>`;
+ g+=`<polygon points="70,190 150,190 150,178 180,200 150,222 150,210 70,210" fill="#555"/><polygon points="830,190 750,190 750,178 720,200 750,222 750,210 830,210" fill="#555"/>`;
+ g+=T(450,198,'PASILLO PRINCIPAL (1.50 m)','text-anchor="middle" font-size="17" font-weight="700" fill="#222"')+T(450,218,'Tránsito libre de equipos y personas','text-anchor="middle" font-size="12" fill="#333"');
+ g+=`<line x1="250" y1="156" x2="250" y2="244" stroke="#222" stroke-width="1.5" marker-start="url(#ar)" marker-end="url(#ar)"/>`+T(244,204,'1.50 m','text-anchor="end" font-size="11" fill="#222"');
+ // zonas
+ for(const z of ZONAS){const [x,y,w,h,bg,hc,tt,sub]=z;const dark=hc==='#e3b21b';
+  g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}" stroke="${hc}" stroke-opacity=".45"/>`;
+  const fs=tt.length>16?10.5:12.5,pw=Math.min(w-12,tt.length*fs*0.68+22);g+=`<rect x="${x+(w-pw)/2}" y="${y+6}" width="${pw}" height="22" rx="3" fill="${hc}"/>`+T(x+w/2,y+22,tt,`text-anchor="middle" font-size="${fs}" font-weight="700" fill="${dark?'#1d1a16':'#fff'}"`);
+  sub.forEach((t,i)=>g+=T(x+w/2,y+42+i*12,t,'text-anchor="middle" font-size="10.5" fill="#333"'))}
+ // maniobra
+ g+=`<rect x="714" y="6" width="182" height="138" fill="#e6e6e6" stroke="#999" stroke-dasharray="6 4"/>`+T(805,50,'ÁREA DE MANIOBRA','text-anchor="middle" font-size="12" font-weight="700" fill="#333"')+T(805,65,'FRENTE A PUERTA','text-anchor="middle" font-size="12" font-weight="700" fill="#333"')+T(805,80,'(mín. 1.20 m)','text-anchor="middle" font-size="11" fill="#333"');
+ g+=`<line x1="745" y1="118" x2="890" y2="118" stroke="#222" stroke-width="1.5" marker-start="url(#ar)" marker-end="url(#ar)"/>`+T(818,112,'1.20 m','text-anchor="middle" font-size="11" fill="#222"');
+ // estante de apoyo
+ g+=`<rect x="748" y="256" width="146" height="138" fill="#e3e7ee" stroke="#1f3a5f" stroke-opacity=".45"/><rect x="758" y="262" width="126" height="22" rx="3" fill="#1f3a5f"/>`+T(821,278,'ESTANTE DE APOYO','text-anchor="middle" font-size="11.5" font-weight="700" fill="#fff"')+T(821,297,'Materiales de embalaje','text-anchor="middle" font-size="10" fill="#333"')+T(821,309,'y herramientas · EA-01','text-anchor="middle" font-size="10" fill="#333"');
+ ['Tijeras','Film stretch','Cintas de embalaje','Etiquetas RFID','Otros repuestos'].forEach((t,i)=>g+=`<rect x="764" y="${316+i*15}" width="114" height="14" fill="#fff" stroke="#b9c1cc"/>`+T(772,327+i*15,'▪ '+t,'font-size="9.5" fill="#222"'));
+ // muros, puertas y arcos
+ const aE=last&&last.lector==='ENTRADA',aS=last&&last.lector==='SALIDA';
+ g+=`<rect x="-3" y="160" width="6" height="80" fill="var(--floor)"/><path d="M0 160 A70 70 0 0 0 -62 196" fill="none" stroke="#888" stroke-width="1.5"/><line x1="0" y1="160" x2="-62" y2="196" stroke="#888" stroke-width="1.5"/>`;
+ g+=`<rect x="-6" y="168" width="14" height="66" rx="2" fill="#2e8b3a" ${aE?'class="flash" stroke="var(--acc)" stroke-width="6"':''}/>`;
+ g+=T(-14,128,'ARCO RFID','text-anchor="end" font-size="12" font-weight="700" fill="#2e8b3a"')+T(-14,142,'(ENTRADA)','text-anchor="end" font-size="12" font-weight="700" fill="#2e8b3a"');
+ g+=T(-14,262,'PUERTA DE','text-anchor="end" font-size="11" font-weight="700" fill="var(--fg)"')+T(-14,276,'INGRESO','text-anchor="end" font-size="11" font-weight="700" fill="var(--fg)"')+T(-14,290,'(al pasillo','text-anchor="end" font-size="10" fill="var(--mut)"')+T(-14,302,'principal)','text-anchor="end" font-size="10" fill="var(--mut)"');
+ g+=`<rect x="897" y="14" width="6" height="80" fill="var(--floor)"/><path d="M900 94 A70 70 0 0 1 962 58" fill="none" stroke="#888" stroke-width="1.5"/><line x1="900" y1="94" x2="962" y2="58" stroke="#888" stroke-width="1.5"/>`;
+ g+=`<rect x="893" y="20" width="14" height="66" rx="2" fill="#c62828" ${aS?'class="flash" stroke="var(--acc)" stroke-width="6"':''}/>`;
+ g+=T(1000,-6,'ARCO RFID','text-anchor="middle" font-size="12" font-weight="700" fill="#c62828"')+T(1000,8,'(SALIDA)','text-anchor="middle" font-size="12" font-weight="700" fill="#c62828"');
+ g+=T(970,112,'PUERTA DE','font-size="11" font-weight="700" fill="var(--fg)"')+T(970,126,'SALIDA','font-size="11" font-weight="700" fill="var(--fg)"')+T(970,140,'(despacho)','font-size="10" fill="var(--mut)"');
+ // posiciones
+ for(const p of s.pos){const r=L[p.cod];if(!r)continue;const occ=p.ocupada,n=p.lotes.length;const ch=prev[p.cod]!==undefined&&prev[p.cod]!==n;prev[p.cod]=n;
+  const bad=p.lotes.some(l=>l.estado==='DAÑADO'?p.cod!=='NC-01':!(p.zona===l.zona||p.zona==='EMERGENCIA'));
+  const cls=(ch?'flash ':'')+(hlPos.has(p.cod)?'hl':'');const cx=r[0]+r[2]/2;
+  g+=`<rect class="${cls}" x="${r[0]}" y="${r[1]}" width="${r[2]}" height="${r[3]}" fill="${occ?POSF[p.zona]:'#fffdf9'}" fill-opacity="${occ?1:.75}" stroke="${bad?'#c62828':'#3a352d'}" stroke-width="${bad?4:(occ?2.5:1.3)}" ${occ||bad?'':'stroke-dasharray="6 4"'}><title>${p.cod}: ${n?p.lotes.map(l=>l.pedido).join(', '):'disponible'}</title></rect>`;
+  g+=T(cx,r[1]+17,p.cod,'text-anchor="middle" font-size="14" font-weight="700" fill="#1d1a16"')+T(cx,r[1]+30,dimOf(p.cod),'text-anchor="middle" font-size="9.5" fill="#333"');
+  g+=T(cx,r[1]+44,bad?'⚠ revisar':(occ?n+' lote'+(n>1?'s':''):'((RFID)) disponible'),`text-anchor="middle" font-size="10" ${bad?'font-weight="700" fill="#c62828"':'fill="#333"'}`);
+  const maxL=r[3]>85?3:(r[3]>=80?2:1);p.lotes.slice(0,maxL).forEach((l,i)=>g+=T(cx,r[1]+57+i*11,esc(l.pedido)+(l.estado==='DAÑADO'?' ✖':''),'text-anchor="middle" font-size="9.5" font-weight="600" fill="#1d1a16"'));
+  if(n>maxL)g+=T(cx,r[1]+57+maxL*11,'+'+(n-maxL)+' más','text-anchor="middle" font-size="9" fill="#333"')}
+ // separaciones y cotas
+ g+=`<defs><marker id="ar" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#222"/></marker></defs>`;
+ g+=`<line x1="0" y1="-24" x2="900" y2="-24" stroke="var(--fg)" stroke-width="1.2" marker-start="url(#ar)" marker-end="url(#ar)"/>`+T(450,-29,'7.00 m','text-anchor="middle" font-size="12" font-weight="700" fill="var(--fg)"');
+ g+=`<line x1="-150" y1="0" x2="-150" y2="400" stroke="var(--fg)" stroke-width="1.2" marker-start="url(#ar)" marker-end="url(#ar)"/>`+T(-156,330,'4.00 m','text-anchor="middle" font-size="12" font-weight="700" fill="var(--fg)" transform="rotate(-90 -156 330)"');
+ return g}
+let prev={},timer=null,sel='';
+let CLK=0,lastT=0,lastR=0;
+const toTs=ms=>new Date(ms).toISOString().slice(0,16);
+const laboral=ms=>{const d=new Date(ms),w=d.getUTCDay(),h=d.getUTCHours();return w>=1&&w<=5&&h>=7&&h<18};
+function finSim(){return TS(($('corte').value||S.hoy.slice(0,10))+'T18:00')}
+function avanzar(ms){let n=0;while(S.paso<GUION.length&&TS(GUION[S.paso].ts)<=ms){procesar(GUION[S.paso]);S.paso++;n++}CLK=ms;S.hoy=toTs(ms);return n}
+function paso(){if(S.paso>=GUION.length)return;avanzar(TS(GUION[S.paso].ts));renderSim()}
+function resetSim(){if(timer)auto();initSim();prev={};CLK=TS(S.hoy);mailVistos=null;renderSim()}
+function tick(now){if(!timer)return;const dt=Math.min(0.5,(now-lastT)/1000);lastT=now;
+ let ms=CLK+(+$('vel').value)*60000*dt;const fin=finSim();
+ if($('salta').checked&&!laboral(ms)){const nx=S.paso<GUION.length?TS(GUION[S.paso].ts):fin;let j=ms;while(!laboral(j)&&j<nx)j+=3600000;ms=Math.min(Math.max(ms,j-((j%3600000))),nx)}
+ if(ms>=fin){ms=fin}
+ const n=avanzar(ms);
+ if(n||now-lastR>400){renderSim();lastR=now}else $('fecha').textContent=reloj();
+ if(ms>=fin&&S.paso>=GUION.length){auto();renderSim();return}
+ timer=requestAnimationFrame(tick)}
+function reloj(){return fmt(S.hoy)+' '+S.hoy.slice(11,16)}
+function auto(){if(timer){cancelAnimationFrame(timer);timer=null;$('ba').classList.remove('on');$('ba').textContent='▶ Reproducir'}
+ else{if(S.paso>=GUION.length&&CLK>=finSim())resetSim();lastT=performance.now();timer=requestAnimationFrame(tick);$('ba').classList.add('on');$('ba').textContent='⏸ Pausa'}}
+const pf=v=>v===null?'–':String(v).replace('.',',')+' %';
+function rebuild(keepRatio){
+ const maxIng=PEDIDOS.filter(p=>p.ingreso&&p.fecha).map(p=>{const c=calc(p);return c.despacho>p.ingreso?c.despacho:p.ingreso}).sort().pop()||'2026-10-16';
+ const corte=corteUser||maxIng;$('corte').value=corte;
+ const prevPaso=S?S.paso:null;
+ GUION=generar(PEDIDOS,corte);if(timer)auto();initSim();prev={};
+ const target=prevPaso===null||keepRatio?Math.round(GUION.length*0.55):Math.min(prevPaso,GUION.length);
+ for(let i=0;i<target;i++){procesar(GUION[i]);S.paso++}
+ CLK=TS(S.hoy);
+ estado().pos.forEach(p=>prev[p.cod]=p.lotes.length);
+  renderSim();
+}
+function renderSim(){
+ renderHist();
+ const s=estado(),k=s.kpi;
+ $('fecha').textContent=reloj();$('nlect').textContent='Lectura '+S.paso+' de '+GUION.length+' · '+PEDIDOS.length+' lotes en la base';
+ $('bar').style.width=(GUION.length?100*S.paso/GUION.length:0)+'%';
+ $('b1').disabled=S.paso>=GUION.length;
+ const K=[['Exactitud de ubicación',k.exact,'≥ 98 %',98,1],['Lotes despachados',k.desp+' / '+k.ing,'',null],
+  ['Lotes dañados',k.dan,'≤ 2 %',2,0],['Ocupación zonas PT',k.ocup,'referencial',null],['Lotes en almacén',k.enAlm,'',null]];
+ $('kpis').innerHTML=K.map(x=>{let c='';if(x[3]!==null&&x[1]!==null)c=(x[4]?x[1]>=x[3]:x[1]<=x[3])?'ok':'bad';
+  const v=(x[0]==='Lotes en almacén'||x[0]==='Lotes despachados')?x[1]:pf(x[1]);return`<div class="kpi ${c}"><div class="v">${v}</div><div class="l">${x[0]}</div><div class="m">Meta: ${x[2]||'–'}</div></div>`}).join('');
+ const last=S.ultima&&S.ultima.r;
+ const hlPos=new Set();if(sel)Object.values(S.lotes).filter(l=>l.pedido===sel&&l.pos&&!l.despachado).forEach(l=>hlPos.add(l.pos));
+ $('plano').innerHTML=plano(s,last,hlPos);
+ if(!S.ultima){$('lectura').innerHTML='<p class="muted">Aún no hay lecturas. Pulsa “Reproducir” o “Siguiente lectura” para simular el paso del primer lote por el arco RFID.</p>'}
+ else{const r=S.ultima.r,res=S.ultima.res,l=S.lotes[r.epc];
+  let rows=`<dt>Lector</dt><dd><span class="pill lect-${r.lector}">${r.lector==='POSICION'?'TAG DE POSICIÓN':'ARCO '+r.lector}</span></dd><dt>Hora</dt><dd class="mono">${r.ts.replace('T',' ')}</dd><dt>EPC lote</dt><dd class="mono">${r.epc}</dd>`;
+  if(r.epcPos){const pz=POS.find(x=>x.epc===r.epcPos);rows+=`<dt>EPC posición</dt><dd class="mono">${r.epcPos} → ${pz.cod}</dd>`}
+  if(l){const p=S.pedidos.find(x=>x.id===l.pedido);rows+=`<dt>Lote (pedido)</dt><dd><b>${esc(p.id)}</b> · ${esc(p.cliente)}</dd><dt>Producto</dt><dd>${esc(p.producto)} · ${esc(med(p))} · ${(+p.unidades).toLocaleString('es-PE')} u</dd><dt>Estado del lote</dt><dd><b style="color:${l.estado==='DAÑADO'?'var(--err)':'var(--ok)'}">${l.estado}</b></dd><dt>Fechas</dt><dd>pedido ${fmt(p.fecha)} · límite ${fmt(p.limite)} · despacho <b>${fmt(p.despacho)}</b></dd>`}
+  $('lectura').innerHTML=`<dl class="read">${rows}</dl><div class="verdict ${res.nivel}">${res.nivel==='ok'?'✔ ':'⚠ '}${res.mensaje}</div>`}
+ $('alertas').innerHTML=s.al.length?s.al.map(a=>`<div class="alert"><b>${a[0]}:</b> ${esc(a[1])}</div>`).join(''):'<div class="noal">✔ Sin alertas</div>';
+ const sp=$('selp');const opts='<option value="">Elegir pedido…</option>'+S.pedidos.slice().sort((a,b)=>a.id<b.id?-1:1).map(p=>`<option value="${esc(p.id)}">${esc(p.id)} · ${esc(p.cliente)}</option>`).join('');
+ if(sp.dataset.k!==opts){sp.innerHTML=opts;sp.dataset.k=opts}
+ if(!S.pedidos.some(p=>p.id===sel))sel='';sp.value=sel;
+ if(sel){const p=s.tab.find(x=>x.id===sel);
+  const det=p.ls.length?'Ubicación: <b>'+esc(p.ubic)+'</b>':'aún no ingresa al almacén (en producción)';
+  $('found').innerHTML=`${esc(p.cliente)} · ${esc(p.producto)} → zona <b>${p.zona}</b>, despacho ${fmt(p.despacho)}.<br>${det}`}else $('found').textContent='El sistema muestra en qué posición está cada lote sin recorrer el almacén.';
+ $('eventos').innerHTML=S.eventos.slice(0,10).map(e=>`<div class="ev ${e.nivel}"><span class="t mono">${e.ts.slice(5).replace('T',' ')}</span><span class="k">${e.tipo}</span><span>${esc(e.texto)}</span></div>`).join('')||'<div class="muted">Esperando lecturas…</div>';
+ $('ped').innerHTML='<tr><th>Pedido</th><th>Cliente</th><th>Producto</th><th>Pedido</th><th>Límite (+6 d)</th><th>Despacho</th><th>Zona</th><th>Ubicación (RFID)</th><th>Estado</th><th>Semáforo</th><th>¿A tiempo?</th></tr>'+
+  (s.tab.length?s.tab.map(p=>`<tr><td><b>${esc(p.id)}</b></td><td>${esc(p.cliente)}</td><td>${esc(p.producto)}</td><td>${fmt(p.fecha)}</td><td>${fmt(p.limite)}</td><td><b>${fmt(p.despacho)}</b></td><td><span class="zona" style="background:${ZC[p.zona]}">${p.zona}</span></td><td>${esc(p.ubic)}</td><td>${p.estado}</td><td><span class="sem ${p.semaforo}">${p.semaforo}</span></td><td>${p.aTiempo===null?'–':(p.aTiempo?'<span class="si">SÍ</span>':'<span class="no">NO</span>')}</td></tr>`).join(''):'<tr><td colspan="11" class="empty">No hay pedidos en la base. Regístralos en la pestaña ① Base de pedidos.</td></tr>');
+}
+$('b1').onclick=paso;$('ba').onclick=auto;$('br').onclick=resetSim;
+$('selp').onchange=e=>{sel=e.target.value;renderSim()};
+$('corte').onchange=e=>{corteUser=e.target.value||null;rebuild(true)};
+
+/* ======================= HISTORIAL Y ALERTAS ======================= */
+const TS=t=>new Date(t+':00Z').getTime();
+const fmtTs=t=>t?fmt(t)+' '+t.slice(11,16):'';
+function fmtDur(m){m=Math.max(0,Math.round(m));if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;if(h<24)return h+' h'+(r?' '+r+' min':'');const d=Math.floor(h/24),hh=h%24;return d+' d'+(hh?' '+hh+' h':'')}
+const SEV={3:'Alta',2:'Media',1:'Baja'};
+function incidencias(){
+ const now=S.hoy,out=[],byL={};
+ S.todos.forEach(e=>{(byL[e.epc]=byL[e.epc]||[]).push(e)});
+ for(const epc in byL){const ev=byL[epc],l=S.lotes[epc];if(!l)continue;const p=S.pedidos.find(x=>x.id===l.pedido);
+  const ent=ev.find(e=>e.lector==='ENTRADA'),sal=ev.find(e=>e.lector==='SALIDA'),poss=ev.filter(e=>e.lector==='POSICION');
+  const base={lote:l.lote,cliente:p.cliente,producto:p.producto,despacho:p.despacho};
+  const zonaOk=l.estado==='DAÑADO'?'NC-01':(l.zona==='MARTES'?'MAR-01/02':'JUE-01/02');
+  if(l.estado!=='DAÑADO'){const fin=poss[0]?poss[0].ts:(sal?sal.ts:null);const dur=(TS(fin||now)-TS(ent.ts))/6e4;
+   if(dur>=60)out.push(Object.assign({},base,{tipo:'Lote sin posición',sev:1,desde:ent.ts,hasta:fin,ubic:'sin registrar',debia:zonaOk,cierre:poss[0]?'Posición registrada en '+poss[0].pos:(sal?'Despachado sin registrar posición':'')}))}
+  poss.forEach((e,i)=>{if(e.ok)return;const nx=poss[i+1];const fin=nx?nx.ts:(sal?sal.ts:null);
+   out.push(Object.assign({},base,{tipo:'Zona incorrecta',sev:2,desde:e.ts,hasta:fin,ubic:e.pos,debia:zonaOk,cierre:nx?(nx.ok?'Reubicado a '+nx.pos:'Movido a '+nx.pos+' (sigue mal)'):(sal?'Despachado desde ubicación incorrecta':'')}))});
+  if(l.estado==='DAÑADO')out.push(Object.assign({},base,{tipo:'Lote dañado',sev:3,desde:ent.ts,hasta:sal?sal.ts:null,ubic:l.pos||'sin registrar',debia:'NC-01 → reponer',cierre:sal?'Despachado':''}));
+ }
+ S.pedidos.forEach(p=>{const t=p.despacho+'T12:30';if(t>now)return;const l=Object.values(S.lotes).find(x=>x.pedido===p.id);
+  if(l&&l.salida&&l.salida.slice(0,10)<=p.despacho)return;
+  out.push({lote:p.id,cliente:p.cliente,producto:p.producto,despacho:p.despacho,tipo:'Despacho vencido',sev:3,desde:t,hasta:l&&l.salida?l.salida:null,ubic:l?(l.pos||(l.salida?'despachado':'sin posición')):'en producción',debia:'camión '+fmt(p.despacho),
+   cierre:l&&l.salida?('Despachado '+fmtTs(l.salida)+(l.salida.slice(0,10)<=p.limite?' (dentro del límite)':' – FUERA DE PLAZO')):''})});
+ out.forEach(x=>{x.abierta=!x.hasta;x.min=(TS(x.hasta||now)-TS(x.desde))/6e4});
+ return out;
+}
+let hMax=40;
+function hFiltros(){return{d:$('h-desde').value,h:$('h-hasta').value,t:$('h-tipo').value,e:$('h-est').value,c:$('h-cli').value,l:$('h-lote').value.trim().toUpperCase(),o:$('h-ord').value,lec:$('h-lec').value}}
+function setOpts(sel,vals,label){const k=vals.join('|');if(sel.dataset.k===k)return;const v=sel.value;sel.innerHTML=`<option value="">${label}</option>`+vals.map(x=>`<option>${esc(x)}</option>`).join('');sel.dataset.k=k;sel.value=vals.includes(v)?v:''}
+function hFiltrar(){const f=hFiltros();
+ let inc=incidencias().filter(x=>(!f.d||x.desde.slice(0,10)>=f.d)&&(!f.h||x.desde.slice(0,10)<=f.h)&&(!f.t||x.tipo===f.t)&&(!f.e||(f.e==='abierta')===x.abierta)&&(!f.c||x.cliente===f.c)&&(!f.l||x.lote.includes(f.l)));
+ inc.sort(f.o==='rec'?(a,b)=>a.desde<b.desde?1:-1:(f.o==='sev'?(a,b)=>b.sev-a.sev||b.min-a.min:(a,b)=>b.min-a.min));
+ return{f,inc}}
+function renderHist(){
+ renderMails();
+ const {f,inc}=hFiltrar(),todas=incidencias();
+ setOpts($('h-tipo'),['Zona incorrecta','Lote sin posición','Lote dañado','Despacho vencido'],'Todas');
+ setOpts($('h-cli'),[...new Set(S.pedidos.map(p=>p.cliente))].sort(),'Todos');
+ const d0=S.todos.length?S.todos[0].ts.slice(0,10):'';
+ $('h-corte').textContent=S.todos.length?`Registros del ${fmtL(d0)} al ${fmtL(S.hoy.slice(0,10))} ${S.hoy.slice(11,16)} (corte de la simulación: lectura ${S.paso} de ${GUION.length}).`:'Aún no hay lecturas registradas.';
+ $('h-fin').disabled=S.paso>=GUION.length;
+ const ab=inc.filter(x=>x.abierta),zc=inc.filter(x=>x.tipo==='Zona incorrecta'&&!x.abierta&&x.cierre.startsWith('Reubicado'));
+ const prom=zc.length?zc.reduce((t,x)=>t+x.min,0)/zc.length:null;const mx=inc.slice().sort((a,b)=>b.min-a.min)[0];
+ const K=[[inc.length,'Incidencias','según filtros'],[ab.length,'Abiertas','sin corregir al corte'],[prom===null?'–':fmtDur(prom),'Tiempo prom. de reubicación','zona incorrecta → zona correcta'],
+  [mx?fmtDur(mx.min):'–','Mayor tiempo sin corregir',mx?mx.lote+' · '+mx.tipo:''],[new Set(inc.map(x=>x.lote)).size,'Lotes afectados',''],[todas.length?Math.round(100*todas.filter(x=>!x.abierta).length/todas.length)+' %':'–','Incidencias cerradas','del total registrado']];
+ $('h-kpis').innerHTML=K.map((x,i)=>`<div class="kpi ${i===1&&x[0]>0?'bad':''}"><div class="v">${x[0]}</div><div class="l">${x[1]}</div><div class="m">${esc(x[2])}</div></div>`).join('');
+ const tipos=['Zona incorrecta','Lote sin posición','Lote dañado','Despacho vencido'].map(t=>[t,inc.filter(x=>x.tipo===t).length,inc.filter(x=>x.tipo===t&&x.abierta).length]);const mxT=Math.max(1,...tipos.map(t=>t[1]));
+ $('h-tipos').innerHTML=tipos.map(t=>`<div class="brow" data-tipo="${t[0]}" title="Filtrar por ${t[0]}"><span>${t[0]}${t[2]?` <span class="open-b">(${t[2]} abiertas)</span>`:''}</span><span class="bar"><i style="width:${100*t[1]/mxT}%"></i></span><b>${t[1]}</b></div>`).join('')+'<p class="rule" style="margin-top:4px">Toca una barra para filtrar el cuadro.</p>';
+ const top=inc.filter(x=>x.tipo==='Zona incorrecta'||x.tipo==='Lote sin posición').sort((a,b)=>b.min-a.min).slice(0,5);
+ $('h-top').innerHTML=top.length?'<div class="top">'+top.map(x=>`<span class="mono"><b>${esc(x.lote)}</b></span><span>${esc(x.cliente)} · ${x.tipo==='Zona incorrecta'?'en '+esc(x.ubic)+', debía '+esc(x.debia):'sin posición registrada'}${x.abierta?' · <span class="open-b">abierta</span>':''}</span><span class="d">${fmtDur(x.min)}</span>`).join('')+'</div>':'<div class="noal">✔ Ningún lote mal ubicado en el periodo</div>';
+ $('h-n').textContent='· '+inc.length+' registro'+(inc.length===1?'':'s');
+ $('h-tab').innerHTML='<tr><th>Gravedad</th><th>Tipo</th><th>Lote</th><th>Cliente</th><th>Descripción</th><th>Dónde estaba</th><th>Dónde debía ir</th><th>Detectada</th><th>Corregida / cerrada</th><th>Tiempo sin corregir</th><th>Cómo se cerró</th></tr>'+
+  (inc.length?inc.map(x=>`<tr class="${x.abierta?'open':''}"><td><span class="sev sev${x.sev}">${SEV[x.sev]}</span></td><td>${x.tipo}</td><td class="mono"><b>${esc(x.lote)}</b></td><td>${esc(x.cliente)}</td><td>${esc(x.producto)}</td><td>${esc(x.ubic)}</td><td>${esc(x.debia)}</td><td>${fmtTs(x.desde)}</td><td>${x.abierta?'<span class="open-b">ABIERTA</span>':fmtTs(x.hasta)}</td><td><b>${fmtDur(x.min)}</b>${x.abierta?' <span class="muted">y sigue</span>':''}</td><td>${esc(x.cierre)||'–'}</td></tr>`).join(''):'<tr><td colspan="11" class="empty">Sin incidencias con estos filtros.</td></tr>');
+ const lec=S.todos.filter(e=>(!f.d||e.ts.slice(0,10)>=f.d)&&(!f.h||e.ts.slice(0,10)<=f.h)&&(!f.lec||e.lector===f.lec)&&(!f.l||(e.pedido||'').includes(f.l))&&(!f.c||(S.pedidos.find(p=>p.id===e.pedido)||{}).cliente===f.c)).slice().reverse();
+ $('h-ln').textContent='· '+lec.length+' lectura'+(lec.length===1?'':'s');
+ $('h-lect').innerHTML='<tr><th>Fecha y hora</th><th>Lector</th><th>Evento</th><th>Lote</th><th>Posición</th><th>Resultado</th><th>EPC</th></tr>'+
+  (lec.length?lec.slice(0,hMax).map(e=>`<tr><td>${fmtTs(e.ts)}</td><td><span class="pill lect-${e.lector}">${e.lector==='POSICION'?'POSICIÓN':e.lector}</span></td><td>${e.tipo}</td><td class="mono">${esc(e.pedido||'')}</td><td>${esc(e.pos||'')}</td><td style="white-space:normal;min-width:260px" class="${e.nivel==='error'?'rowerr':(e.nivel==='warn'?'rowup':'')}">${esc(e.texto)}</td><td class="mono" style="font-size:11px">${e.epc}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">Sin lecturas con estos filtros.</td></tr>');
+ $('h-mas').hidden=lec.length<=hMax;
+}
+['h-desde','h-hasta','h-tipo','h-est','h-cli','h-ord','h-lec'].forEach(i=>$(i).addEventListener('change',()=>{hMax=40;renderHist()}));
+$('h-lote').addEventListener('input',()=>{hMax=40;renderHist()});
+$('h-clr').onclick=()=>{['h-desde','h-hasta','h-tipo','h-est','h-cli','h-lote','h-lec'].forEach(i=>$(i).value='');$('h-ord').value='dur';hMax=40;renderHist()};
+$('h-mas').onclick=()=>{hMax+=60;renderHist()};
+$('h-tipos').addEventListener('click',e=>{const r=e.target.closest('.brow');if(!r)return;$('h-tipo').value=$('h-tipo').value===r.dataset.tipo?'':r.dataset.tipo;renderHist()});
+$('h-fin').onclick=()=>{if(timer)auto();avanzar(finSim());renderSim()};
+$('h-exp').onclick=()=>{const {inc}=hFiltrar();const head=['Gravedad','Tipo','Lote','Cliente','Descripción','Dónde estaba','Dónde debía ir','Detectada','Corregida / cerrada','Estado','Tiempo sin corregir (h)','Cómo se cerró'];
+ const rows=inc.map(x=>[SEV[x.sev],x.tipo,x.lote,x.cliente,x.producto,x.ubic,x.debia,fmtL(x.desde)+' '+x.desde.slice(11,16),x.hasta?fmtL(x.hasta)+' '+x.hasta.slice(11,16):'',x.abierta?'ABIERTA':'Cerrada',Math.round(x.min/6)/10,x.cierre]);
+ const lec=S.todos.map(e=>[fmtL(e.ts)+' '+e.ts.slice(11,16),e.lector,e.tipo,e.pedido||'',e.pos||'',e.texto,e.epc]);
+ const btn=$('exp-msg');
+ entregar('Historial_Alertas_Almacen.xlsx',()=>{const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,hoja([head].concat(rows),[9,18,10,20,40,14,16,17,19,10,12,36]),'Incidencias');
+  XLSX.utils.book_append_sheet(wb,hoja([['Fecha y hora','Lector','Evento','Lote','Posición','Resultado','EPC']].concat(lec),[17,10,13,10,10,60,28]),'Lecturas RFID');return wb},
+  [head].concat(rows).map(r=>r.join('\t')).join('\n')).then(()=>{$('h-msg').className=btn.className;$('h-msg').textContent=btn.textContent;btn.textContent=''})};
+
+/* ---------- correos de alerta (envío simulado) ---------- */
+let CFG=Object.assign({correo:'jefe.almacen@empresa.com',umbral:4,activo:true},leer(KCFG,{})),mailVistos=null,mMax=5,mOpen=new Set(),toastT=null;
+function cfgUI(){$('m-to').value=CFG.correo||'';$('m-umb').value=String(CFG.umbral);$('m-on').checked=!!CFG.activo}
+const ACCION={'Zona incorrecta':'Reubicar el lote en su zona de despacho y confirmar la lectura RFID en la posición correcta.','Lote sin posición':'Colocar el lote en su zona y leer la etiqueta de posición para registrarla.','Lote dañado':'Evaluar el lote en NC-01 y coordinar la reposición con producción antes del despacho.','Despacho vencido':'Coordinar con el cliente y priorizar el lote en el siguiente despacho (martes/jueves).'};
+function correos(){if(!CFG.activo)return[];const now=TS(S.hoy),u=CFG.umbral*3600000;
+ return incidencias().filter(x=>x.min*60000>=u).map(x=>{const t=TS(x.desde)+u;return{ts:toTs(t),inc:x,key:x.tipo+'|'+x.lote+'|'+x.desde}}).filter(e=>TS(e.ts)<=now).sort((a,b)=>a.ts<b.ts?1:-1)}
+function cuerpo(e){const x=e.inc,h=CFG.umbral;return{asunto:`[Almacén PT] ${x.tipo} sin corregir – lote ${x.lote} (más de ${h} h)`,
+ texto:`Estimado(a) responsable de almacén:\n\nEl lote ${x.lote} (${x.cliente} – ${x.producto}) mantiene una alerta abierta desde el ${fmtTs(x.desde)}; ya superó el límite de ${h} h sin corregirse.\n\nTipo de alerta: ${x.tipo}\nUbicación detectada por RFID: ${x.ubic}\nUbicación correcta: ${x.debia}\nDía de despacho del pedido: ${fmt(x.despacho)}\n\nAcción requerida: ${ACCION[x.tipo]}\n\nMensaje automático del sistema 5S + RFID – Almacén de producto terminado.`}}
+function toast(msg){const t=$('toast');t.innerHTML=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true},6000)}
+function renderMails(){const ms=correos();
+ if(mailVistos===null)mailVistos=new Set(ms.map(e=>e.key));
+ const nuevos=ms.filter(e=>!mailVistos.has(e.key));nuevos.forEach(e=>mailVistos.add(e.key));
+ if(nuevos.length){const e=nuevos[0];toast(`✉ <b>Correo enviado</b> a ${esc(CFG.correo)}<br>${esc(e.inc.tipo)} sin corregir – lote <b>${esc(e.inc.lote)}</b> (más de ${CFG.umbral} h)${nuevos.length>1?`<br><span class="muted">y ${nuevos.length-1} correo(s) más</span>`:''}`)}
+ $('m-list').innerHTML=ms.length?ms.slice(0,mMax).map(e=>{const c=cuerpo(e),open=mOpen.has(e.key),sig=e.inc.abierta?'<span class="open-b">alerta aún abierta</span>':'<span class="closed-b">corregida después del aviso ('+fmtTs(e.inc.hasta)+')</span>';
+   const href='mailto:'+encodeURIComponent(CFG.correo)+'?subject='+encodeURIComponent(c.asunto)+'&body='+encodeURIComponent(c.texto);
+   return`<div class="mail"><div class="mh"><span>✉ Enviado ${fmtTs(e.ts)} (simulado)</span><span>Para: ${esc(CFG.correo)}</span><span>${sig}</span></div><div class="ms">${esc(c.asunto)}</div>
+   <div class="actions"><button class="sec mini" data-mv="${esc(e.key)}">${open?'Ocultar':'Ver'} mensaje</button><button class="sec mini" data-mc="${esc(e.key)}">Copiar</button><a class="sec mini" style="text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--fg)" href="${href}" target="_blank" rel="noopener">Abrir en mi correo</a></div>${open?`<pre>${esc(c.texto)}</pre>`:''}</div>`}).join(''):`<div class="muted">Aún no hay alertas que superen ${CFG.umbral} h${CFG.activo?'':' (notificaciones desactivadas)'}.</div>`;
+ $('m-mas').hidden=ms.length<=mMax;return ms}
+$('m-list').addEventListener('click',async e=>{const t=e.target;
+ if(t.dataset.mv){mOpen.has(t.dataset.mv)?mOpen.delete(t.dataset.mv):mOpen.add(t.dataset.mv);renderMails()}
+ if(t.dataset.mc){const m=correos().find(x=>x.key===t.dataset.mc);if(!m)return;const c=cuerpo(m);
+  try{await navigator.clipboard.writeText('Para: '+CFG.correo+'\nAsunto: '+c.asunto+'\n\n'+c.texto);t.textContent='Copiado ✓'}catch(x){mOpen.add(m.key);renderMails()}}});
+$('m-mas').onclick=()=>{mMax+=10;renderMails()};
+$('m-save').onclick=async()=>{const c={correo:$('m-to').value.trim(),umbral:+$('m-umb').value,activo:$('m-on').checked};const m=$('m-msg');
+ if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.correo)){m.className='msg err';m.textContent='Escribe un correo válido.';return}
+ CFG=c;mailVistos=null;renderMails();
+ m.className='msg ok';m.textContent=guardar(KCFG,c)?'Configuración guardada.':'Configuración aplicada (no se pudo guardar en este navegador).'};
+
+/* ---------- pestañas ---------- */
+function tab(t){['base','sim','his'].forEach(k=>{$('v-'+k).hidden=t!==k;$('t-'+k).setAttribute('aria-selected',t===k)});try{localStorage.setItem('tab',t)}catch(e){}}
+$('t-base').onclick=()=>tab('base');$('t-sim').onclick=()=>tab('sim');$('t-his').onclick=()=>tab('his');
+
+/* ---------- cambios en la base → se regenera la simulación ---------- */
+let first=true;
+function onData(){renderDB();rebuild(first);first=false;if(!editing)$('f-id').value=$('f-id').value&&!PEDIDOS.some(p=>p.id===$('f-id').value.trim().toUpperCase())?$('f-id').value:nextId()}
+clearForm();cfgUI();onData();
+let t0='base';try{t0=location.hash==='#simulacion'?'sim':(location.hash==='#historial'?'his':(localStorage.getItem('tab')||'base'))}catch(e){}tab(t0);
+setStatus();
+})();
+</script>
+
+</body>
+</html>
